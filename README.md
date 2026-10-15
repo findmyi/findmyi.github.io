@@ -29,13 +29,40 @@ node serve.mjs 9000     # 指定端口
 
 ```bash
 node build/build.mjs      # 生成 manifest / search / articles
+node build/test-paywall.mjs  # 付费系统自检（60 项，含付费正文泄漏扫描）
 node build/verify.mjs     # 校验 13 项功能代码是否齐备
 ```
 
 会输出：
 - `data/manifest.json` —— 目录与全部条目元数据（`front` + `articles`）
 - `data/search.json` —— 全文搜索索引
-- `articles/{id}.html` —— 78 个正文片段（14 前置 + 64 卦）
+- `articles/{id}.html` —— 79 个正文片段（14 前置 + 1 参考书目 + 64 卦）
+
+## 付费系统
+
+免费部分给所有人看（原文 / 彖传 / 象传 / 六爻 / 白话 / 处世应用），
+深度解读作为付费章节，由授权码解锁。
+
+```bash
+node build/gen-keys.mjs --n 100 --note "6月批次"   # 生成授权码 → build/keys.csv
+```
+
+| 文件 | 作用 |
+|---|---|
+| `content/premium-guide.md` | **站点所有者手册**（合规、平台选型、定价、上线步骤） |
+| `content/premium-content.mjs` | 付费内容源：`teaser`（公开）+ `depth`（不发布） |
+| `assets/license.js` | 离线授权码校验（等级 `PREM` / `QK00`） |
+| `assets/payment.js` | 收款配置：填平台链接即可 |
+| `assets/paywall.css` | 付费卡样式 |
+| `assets/paywall-worker.example.js` | Cloudflare Worker 模板（升级到服务端校验） |
+| `build/gen-keys.mjs` | 授权码生成器 |
+| `build/test-paywall.mjs` | 自检脚本 |
+
+**安全边界**：离线授权码是**混淆**而非安全 —— 前端校验可被绕过。
+真正的保护来自构建方式：付费正文 `depth` **不会写进任何静态产物**，
+所以绕过前端也拿不到内容。详见 `content/premium-guide.md` 第八节。
+
+> ⚠️ `build/keys*.csv` 已在 `.gitignore` 中，**永远不要提交已售出的授权码**。
 
 ## 结构
 
@@ -44,12 +71,19 @@ node build/verify.mjs     # 校验 13 项功能代码是否齐备
 ├─ serve.mjs               本地静态服务器
 ├─ assets/
 │  ├─ app.css              样式（明暗双主题）
-│  ├─ app.js               hash 路由 + 渲染 + 搜索
+│  ├─ paywall.css          付费卡样式
+│  ├─ app.js               hash 路由 + 渲染 + 搜索 + 权益层 Entitlement
+│  ├─ license.js           授权码离线校验
+│  ├─ payment.js           收款配置（站点所有者填写）
+│  ├─ paywall-worker.example.js  Cloudflare Worker 模板
 │  └─ img/favicon.svg
+├─ content/
+│  ├─ premium-content.mjs  付费内容源（teaser 公开 / depth 不发布）
+│  └─ premium-guide.md     站点所有者手册
 ├─ data/                   构建生成
 │  ├─ manifest.json
 │  └─ search.json
-├─ articles/               78 个正文片段（构建生成）
+├─ articles/               79 个正文片段（构建生成）
 └─ build/
    ├─ bagua.mjs            八卦基础
    ├─ front.mjs            前置 14 篇（卷首/基础/方法）
@@ -58,6 +92,8 @@ node build/verify.mjs     # 校验 13 项功能代码是否齐备
    ├─ hex-33-48.mjs        │
    ├─ hex-49-64.mjs        ┘
    ├─ build.mjs            合并 + 校验 + 生成
+   ├─ gen-keys.mjs         授权码生成器
+   ├─ test-paywall.mjs     付费系统自检
    └─ verify.mjs           功能代码自检
 ```
 
@@ -85,7 +121,8 @@ node build/verify.mjs     # 校验 13 项功能代码是否齐备
 - 上一卦 / 下一卦导航
 - 卦象浮动速览面板（右下角）
 - 阅读位置记忆（「继续阅读」）
-- 响应式 + 打印样式
+- **付费章节 + 授权码解锁**（免费部分完整可读，不做硬拦截）
+- 响应式 + 打印样式（打印时不输出付费卡）
 
 ## 数据说明
 

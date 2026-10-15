@@ -8,6 +8,14 @@ node_modules/
 # 本地预览截图（体积大，不入库）
 build/shots/
 
+# ⚠️ 授权码 CSV —— 绝对不要提交！
+# keys.csv 里是已售出的授权码，泄露等于把这些码免费送给所有人。
+build/keys*.csv
+
+# Chrome 调试用的临时 profile（本地验证脚本产生）
+build/.chrome-profile/
+build/.chrome-verify/
+
 # 编辑器与系统
 .vscode/
 .idea/

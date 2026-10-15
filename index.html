@@ -6,8 +6,9 @@
 <title>周易六十四卦 · 白话全解</title>
 <meta name="description" content="六十四卦卦辞、彖传、象传、爻辞原文，配白话解读与处世应用。">
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/content.css">
 <link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/toc-variants.css">
+<link rel="stylesheet" href="assets/paywall.css">
 </head>
 <body>
 <a class="skip-link" href="#main">跳到正文</a>
@@ -21,7 +22,6 @@
   <div class="topbar-actions">
     <button class="pill-btn" id="searchBtn">搜索 <kbd>⌘K</kbd></button>
     <button class="pill-btn" id="tocBtn">目录 · <span id="tocCount">64</span> 卦</button>
-    <button class="pill-btn" id="themeBtn" title="切换明暗主题" aria-label="切换明暗主题">◐</button>
   </div>
 </header>
 
@@ -71,6 +71,20 @@
   <section class="reading-paths" aria-label="按用途开始阅读">
     <h2>你现在的状态，决定你从哪里开始</h2>
     <div id="readingPaths"></div>
+  </section>
+
+  <!-- ============ 六十四卦图 · 方阵 / 球面 双视图 ============ -->
+  <section class="disc-sec" aria-label="六十四卦图">
+    <div class="disc-inner-wrap">
+      <div class="sec-head">
+        <span class="sec-label">DIAGRAM · 六十四卦</span>
+        <h2 class="sec-title">六十四卦全图</h2>
+        <p class="sec-note">按八宫分行，乾、坤、震、巽、坎、离、艮、兑各领一行。<br>
+          点任一卦，右侧显示卦辞与六爻。</p>
+      </div>
+
+      <div class="disc-wrap" id="discWrap"></div>
+    </div>
   </section>
 
   <section class="picks">
@@ -179,6 +193,9 @@
 
 <div class="toast" id="toast" role="status" hidden></div>
 
+<!-- 付费层：license（离线校验）→ payment（购买链接）→ app（门面 Entitlement） -->
+<script src="assets/license.js"></script>
+<script src="assets/payment.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>

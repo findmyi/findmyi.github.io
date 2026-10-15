@@ -1,6 +1,10 @@
 /* ==========================================================================
    周易六十四卦 · 应用逻辑
    三视图 hash 路由：#/ 封面 · #/toc 目录 · #/p/{id} 正文
+   --------------------------------------------------------------------------
+   付费墙 / 授权（本文件内的 Entitlement 门面）：
+     依赖 assets/license.js（离线校验）与 assets/payment.js（购买链接）。
+     两者都必须在 app.js 之前加载。
    ========================================================================== */
 (function () {
   'use strict';
@@ -33,6 +37,96 @@
     set(k, v) { try { localStorage.setItem('zhouyi.' + k, JSON.stringify(v)); } catch {} },
   };
 
+  /* ==========================================================================
+     Entitlement —— 权益层
+     --------------------------------------------------------------------------
+     职责：回答一个问题 —— 「这篇文章现在能不能看完整版？」
+     真相来源：data/manifest.json 里每篇的 tier 字段。
+     登记来源：localStorage（由 License 模块管理）。
+
+     优雅降级（很重要）：
+       · manifest 没有 meta.premium 或某篇没有 tier → 该篇视为免费
+       · license.js / payment.js 没加载 → 视为免费，绝不把读者挡在门外
+       这条规则保证：任何配置缺失都不会让站点变成一堵墙。
+     ========================================================================== */
+  const Entitlement = {
+    /** 底层依赖是否就绪 */
+    get ready() {
+      return typeof window.License !== 'undefined';
+    },
+
+    /** 已激活的等级列表 */
+    tiers() {
+      return this.ready ? window.License.activeTiers() : [];
+    },
+
+    /** 付费功能是否被 manifest 启用 */
+    get enabled() {
+      return !!(M && M.meta && M.meta.premium && M.meta.premium.enabled);
+    },
+
+    /** 取某篇的 tier（'free' | 'premium'）。无信息一律 free。 */
+    tierOf(articleId) {
+      if (!M) return 'free';
+      const a = (M.articles || []).find((x) => x.id === articleId)
+        || (M.front || []).find((x) => x.id === articleId);
+      return (a && a.tier) || 'free';
+    },
+
+    /** 这篇文章是否需要付费 */
+    needsPaywall(articleId) {
+      if (!this.enabled) return false;
+      return this.tierOf(articleId) === 'premium';
+    },
+
+    /**
+     * 核心 API：这篇是否已解锁（免费文章恒为 true）。
+     * @param {string} articleId
+     * @returns {boolean}
+     */
+    isUnlocked(articleId) {
+      if (!this.needsPaywall(articleId)) return true;   // 免费内容
+      if (!this.ready) return false;
+      const tiers = this.tiers();
+      if (!tiers.length) return false;
+      return window.License.tiersCover(tiers, articleId);
+    },
+
+    /**
+     * 核心 API：用授权码解锁。
+     * @param {string} key 用户输入的授权码
+     * @returns {{ok:boolean, tier?:string, label?:string, reason?:string, covers?:boolean}}
+     */
+    unlock(key) {
+      if (!this.ready) {
+        return { ok: false, reason: '授权模块未加载，请刷新页面后重试。' };
+      }
+      const res = window.License.activate(key);
+      if (!res.ok) return res;
+      // 告诉调用方这个码是否覆盖当前文章（用于「已解锁但不是这篇」的提示）
+      res.covers = this.isUnlocked(currentId);
+      return res;
+    },
+
+    /** 撤销本机全部授权 */
+    reset() {
+      if (this.ready) window.License.clear();
+    },
+
+    /** 认证信息文案（给「已解锁」条用） */
+    label() {
+      const tiers = this.tiers();
+      if (!tiers.length) return '';
+      return tiers
+        .map((t) => (window.License.TIERS[t] || {}).label || t)
+        .join(' · ');
+    },
+  };
+
+  // 暴露到全局，便于调试与后续扩展（也供 Worker 版升级时复用）
+  window.Entitlement = Entitlement;
+
+
   /* ---------- 资源加载 ---------- */
   async function getJSON(url) {
     const r = await fetch(url, { cache: 'no-cache' });
@@ -55,21 +149,6 @@
   const byN = (n) => M.articles.find((a) => a.n === n);
   const isFront = (a) => !!a.isFront;
   const frontList = () => M.front || [];
-
-  /* ---------- 主题 ---------- */
-  function initTheme() {
-    const saved = LS.get('theme', null);
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const theme = saved || (prefersDark ? 'dark' : 'light');
-    document.documentElement.setAttribute('data-theme', theme);
-  }
-  function toggleTheme() {
-    const cur = document.documentElement.getAttribute('data-theme');
-    const next = cur === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    LS.set('theme', next);
-    toast(next === 'dark' ? '已切换到夜间' : '已切换到日间');
-  }
 
   /* ---------- Toast ---------- */
   let toastTimer = null;
@@ -128,6 +207,9 @@
         <div class="pc-sub">${esc(p.sub)}</div>
       </a>`).join('');
 
+    // 方圆图（首页）
+    renderDisc();
+
     // 精选：前置必读 3 篇（这是「体」）
     const fl = frontList();
     const mustRead = ['preface', 'basics-64', 'method-divination']
@@ -165,11 +247,311 @@
     }).join('');
   }
 
+  /* ---------- 心跳图（横向 · 左为初爻，右为上爻） ----------
+   * 把六爻的阴阳画成一条折线：
+   *   横轴 = 爻位，自左至右为 初→二→三→四→五→上
+   *   纵轴 = 阴阳，阳爻走高（上），阴爻走低（下）
+   *
+   * 于是：
+   *   乾（全阳）→ 一条贴顶的直线
+   *   坤（全阴）→ 一条贴底的直线
+   *   既济（阳阴交替）→ 明显的高低锯齿
+   *   泰（下三阳上三阴）→ 左半高、右半低
+   *   否（下三阴上三阳）→ 左半低、右半高
+   */
+  function pulseSVG(binary, cls) {
+    if (!Array.isArray(binary) || binary.length !== 6) return '';
+    const W = 86, H = 24;
+    const padX = 5, padY = 4;
+    const stepX = (W - padX * 2) / 5;
+    const hi = padY;                 // 阳爻的 y（上）
+    const lo = H - padY;             // 阴爻的 y（下）
+
+    // 自左至右：index 0（初爻）在最左
+    const pts = binary.map((b, i) => ({
+      x: padX + i * stepX,
+      y: b ? hi : lo,
+    }));
+
+    // 平滑连接（横向为主，按 x 的中点做控制点）
+    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for (let i = 1; i < pts.length; i++) {
+      const p = pts[i - 1], c = pts[i];
+      const mx = (p.x + c.x) / 2;
+      d += ` C ${mx.toFixed(1)} ${p.y.toFixed(1)}, ${mx.toFixed(1)} ${c.y.toFixed(1)}, ${c.x.toFixed(1)} ${c.y.toFixed(1)}`;
+    }
+
+    const dots = pts
+      .map((p) => `<circle class="pl-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="1.9" />`)
+      .join('');
+
+    return `<svg class="${cls || 'tocv-pulse'}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+      <path class="pl-line" d="${d}" />
+      ${dots}
+    </svg>`;
+  }
+
+  /* ---------- 目录 · 竹简（方案 07：心电图作主视觉） ----------
+   * 8 列 × 8 行 = 64 片，每片一卦。
+   * 每片结构：序号 → 卦名竖排 → 心电图（主视觉）→ 卦象 + 全称
+   * 心电图横向：左 = 初爻，右 = 上爻；阳爻走高、阴爻走低。
+   */
+  function renderSlips() {
+    const wrap = $('#slipsWrap');
+    if (!wrap) return;
+
+    wrap.innerHTML = M.articles.map((h) => `
+      <a class="slip" href="#/p/${h.id}" title="${esc(h.name)}卦 · ${esc(h.full)}">
+        <span class="slip-no">${String(h.n).padStart(2, '0')}</span>
+        <span class="slip-body"><span class="slip-text">${esc(h.name)}</span></span>
+        <span class="slip-plot">${pulseSVG(h.binary, 'slip-pulse')}</span>
+        <span class="slip-foot">
+          <span class="slip-glyph">${h.symbol}</span>
+          <span class="slip-full">${esc(h.full)}</span>
+        </span>
+      </a>`).join('');
+  }
+  /* ---------- 首页 · 先天六十四卦图（方阵 / 圆图 双视图） ----------
+   * 圆图：位置由 manifest.meta.circleIndex 给出（0 = 正上乾，顺时针）
+   * 方阵：按圆图序排成 8×8，每行一宫 —— 朱熹《易學啟蒙》方圆并置
+   * 右侧：悬停卦的卦象、六爻、卦辞
+   */
+  /* 八宫顺序：乾坤震巽坎离艮兑（每行一宫，本宫卦在该行首位） */
+  const PALACE_NAMES = ['乾', '坤', '震', '巽', '坎', '离', '艮', '兑'];
+  const PALACE_COLORS = ['#a8322a', '#3f6f7a', '#4f7a4a', '#8a7a3f',
+                         '#4a5a8a', '#b5651d', '#7a4a7a', '#6f5a4a'];
+
+  /* 行内上卦次序：前四宫用先天正序，后四宫用反序 —— 与先天横图一致 */
+  const UPPER_ORDER = ['乾', '兑', '离', '震', '巽', '坎', '艮', '坤'];
+  const UPPER_ORDER_REV = UPPER_ORDER.slice().reverse();
+
+  /* 圆图序排列的六十四卦 */
+  function circleOrdered() {
+    const CIR = (M.meta && M.meta.circleIndex) || {};
+    return M.articles.slice().sort((a, b) => (CIR[a.id] ?? 99) - (CIR[b.id] ?? 99));
+  }
+
+  /* 按八宫（下卦）分组的 8×8 矩阵。
+     每行以该宫的本宫卦为首（乾宫行首为乾、坤宫行首为坤）。 */
+  function matrixRows() {
+    const ord = circleOrdered();
+    return PALACE_NAMES.map((g) => {
+      const i = ord.findIndex((h) => h.lower === g);
+      const start = Math.floor(i / 8) * 8;
+      const row = ord.slice(start, start + 8);
+      const seq = ['巽', '坎', '艮', '坤'].indexOf(g) >= 0 ? UPPER_ORDER_REV : UPPER_ORDER;
+      return row.slice().sort((a, b) => seq.indexOf(a.upper) - seq.indexOf(b.upper));
+    });
+  }
+
+  /* 爻线（bin[0] = 初爻，画在最下） */
+  function yaoSVG(bin, cx, cy, w, gap, th, color) {
+    let s = '';
+    bin.forEach((v, k) => {
+      const y = cy + (2.5 - k) * gap;
+      if (v) {
+        s += `<rect x="${(cx - w / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${w}" height="${th}" rx="0.6" fill="${color}"/>`;
+      } else {
+        const h = (w - gap * 0.7) / 2;
+        s += `<rect x="${(cx - w / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${h.toFixed(1)}" height="${th}" rx="0.6" fill="${color}"/>`;
+        s += `<rect x="${(cx + gap * 0.35).toFixed(1)}" y="${y.toFixed(1)}" width="${h.toFixed(1)}" height="${th}" rx="0.6" fill="${color}"/>`;
+      }
+    });
+    return s;
+  }
+
+  /* ---------- 方阵视图（首页默认） ---------- */
+  /* ---------- 方阵几何：预设 ----------
+   * 用 URL 参数切换，形如  ?mx=C / ?mx=C2 / ?mx=C3
+   * 目的：在【真实首页比例】下对比，而不是脱离页面的测试页。
+   *
+   * gapX = 左右间距（疏）
+   * gapY = 上下间距（密）—— 行与行贴紧一些，八行更成一体
+   */
+  const MATRIX_PRESETS = {
+    // A · 原始（格子 128×96）
+    A: { cw: 128, ch: 96, gapX: 8, gapY: 8, padL: 46, padR: 4, top: 6,
+         palaceFont: 21, nameFont: 15, fullFont: 10,
+         yaoW: 52, yaoGap: 7.2, yaoTh: 4, yaoCy: 34,
+         nameDy: -24, fullDy: -10 },
+    // C · 左右 19 / 上下 19（原来上下同宽）
+    C: { cw: 118.9, ch: 86, gapX: 19, gapY: 19, padL: 42, padR: 4, top: 6,
+         palaceFont: 19, nameFont: 13.5, fullFont: 9,
+         yaoW: 43, yaoGap: 6, yaoTh: 3.4, yaoCy: 31,
+         nameDy: -21, fullDy: -8 },
+    // C2 · 左右 22 / 上下 10（上下明显收紧）
+    C2: { cw: 116.2, ch: 88, gapX: 22, gapY: 10, padL: 42, padR: 4, top: 6,
+          palaceFont: 19, nameFont: 13.5, fullFont: 9,
+          yaoW: 43, yaoGap: 6.1, yaoTh: 3.5, yaoCy: 32,
+          nameDy: -21, fullDy: -8 },
+    // C3 · 左右 25 / 上下 6（上下最紧，行距贴合成块）
+    C3: { cw: 113.6, ch: 90, gapX: 25, gapY: 6, padL: 42, padR: 4, top: 6,
+          palaceFont: 19, nameFont: 13.5, fullFont: 9,
+          yaoW: 43, yaoGap: 6.2, yaoTh: 3.5, yaoCy: 33,
+          nameDy: -22, fullDy: -8 },
+  };
+
+  function currentPreset() {
+    // 参数可能出现在 search（?mx=C2）或 hash（#/toc?mx=C2）里，两者都读
+    const src = `${location.search || ''}&${location.hash || ''}`;
+    const m = /[?&]mx=(A|C2|C3|C)\b/i.exec(src);
+    return (m && MATRIX_PRESETS[m[1].toUpperCase()]) || MATRIX_PRESETS.C2;
+  }
+
+  function renderMatrix(host, onPick) {
+    const g = currentPreset();
+    const { cw, ch, padL, padR, top, gapX, gapY } = g;
+    const rows = matrixRows();
+    const S = padL + cw * 8 + gapX * 7 + padR;
+    const H = top * 2 + ch * 8 + gapY * 7;
+
+    let s = `<svg class="mx-svg" viewBox="0 0 ${S} ${H}" preserveAspectRatio="xMidYMid meet">`;
+
+    for (let r = 0; r < 8; r++) {
+      const gy = top + r * (ch + gapY) + ch / 2;
+      s += `<text x="${padL - 13}" y="${gy}" text-anchor="end" dominant-baseline="middle"
+              style="font-size:${g.palaceFont}px;font-family:var(--serif);font-weight:700;fill:${PALACE_COLORS[r]}">${PALACE_NAMES[r]}</text>`;
+
+      for (let c = 0; c < 8; c++) {
+        const h = rows[r][c];
+        if (!h) continue;
+        const x = padL + c * (cw + gapX), y = top + r * (ch + gapY);
+        const col = PALACE_COLORS[r];
+        s += `<g class="mx-cell" data-id="${h.id}">
+          <rect x="${x + 2}" y="${y + 2}" width="${cw - 4}" height="${ch - 4}" rx="6"
+                fill="${col}" opacity=".07"/>
+          <rect x="${x + 2}" y="${y + 2}" width="${cw - 4}" height="${ch - 4}" rx="6"
+                fill="none" stroke="${col}" stroke-width="1" opacity=".38"/>
+          ${yaoSVG(h.binary, x + cw / 2, y + g.yaoCy, g.yaoW, g.yaoGap, g.yaoTh, 'var(--ink-2)')}
+          <text x="${x + cw / 2}" y="${y + ch + g.nameDy}" text-anchor="middle"
+                style="font-size:${g.nameFont}px;font-family:var(--serif);font-weight:600;fill:var(--ink)">${esc(h.name)}</text>
+          <text x="${x + cw / 2}" y="${y + ch + g.fullDy}" text-anchor="middle"
+                style="font-size:${g.fullFont}px;font-family:var(--serif);fill:var(--ink-4)">${esc(h.full)}</text>
+        </g>`;
+      }
+    }
+    s += '</svg>';
+
+    host.innerHTML = `<div class="mx-wrap">${s}</div>`;
+    host.querySelectorAll('.mx-cell').forEach((el) => {
+      el.addEventListener('mouseenter', () => {
+        const h = M.articles.find((x) => x.id === el.dataset.id);
+        if (h) onPick(h);
+      });
+    });
+  }
+
+  /* ---------- 右侧详情栏 ---------- */
+  const yaoCache = {};
+  async function loadYao(h) {
+    if (yaoCache[h.id]) return yaoCache[h.id];
+    try {
+      const html = await getText(`articles/${h.id}.html`);
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const list = Array.from(doc.querySelectorAll('.yao-list li')).map((li) => {
+        const c = li.cloneNode(true);
+        const x = c.querySelector('.yao-xiang');
+        if (x) x.remove();
+        return c.textContent.trim();
+      });
+      yaoCache[h.id] = list;
+      return list;
+    } catch { return null; }
+  }
+
+  function sideHTML(h, yaoItems) {
+    const pos = ['初', '二', '三', '四', '五', '上'];
+    const yao = (h.binary || []).map((b, i) => {
+      const sym = b ? '&#8212;' : '--';
+      const txt = (yaoItems && yaoItems[i]) || `${pos[i]}${b ? '九' : '六'}`;
+      return `<li class="ds-line">
+        <span class="dl-sym">${sym}</span>
+        <span class="dl-txt">${esc(txt)}</span>
+      </li>`;
+    }).join('');
+
+    // 六爻之下的史事引流块：数据来自 manifest.meta.hexStory
+    // 文案故意在关键处用「……」断掉，引人点进完整阅读。
+    // 没配故事的卦整块不出现，不会留下空壳。
+    const st = (M.meta && M.meta.hexStory && M.meta.hexStory[h.id]) || null;
+    const story = st ? `
+      <div class="ds-story">
+        <div class="dst-head">
+          <span class="dst-who">${esc(st.who)}</span>
+          <span class="dst-era">${esc(st.era)}</span>
+        </div>
+        <p class="dst-text">${esc(st.text)}</p>
+        <a class="dst-go" href="#/p/${h.id}">
+          <span>完整阅读</span>
+          <svg viewBox="0 0 20 20" width="13" height="13" aria-hidden="true">
+            <circle cx="10" cy="10" r="8.4" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M8.5 6.6 L12.3 10 L8.5 13.4" fill="none" stroke="currentColor"
+                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>` : '';
+
+    return `
+      <div class="ds-head">
+        <span class="ds-sym">${h.symbol}</span>
+        <div class="ds-hd-txt">
+          <div class="ds-no">第 ${h.n} 卦</div>
+          <div class="ds-name">${esc(h.name)}卦</div>
+          <div class="ds-full">${esc(h.full)}</div>
+          <div class="ds-tri"><span>上卦 · ${esc(h.upper)}</span><span>下卦 · ${esc(h.lower)}</span></div>
+        </div>
+      </div>
+      <div class="ds-sec-tt">卦辞</div>
+      <p class="ds-gua">${esc(h.gua || h.quote || '')}</p>
+      <div class="ds-sec-tt">六爻</div>
+      <ul class="ds-yao">${yao}</ul>
+      ${story}`;
+  }
+
+  /* ---------- 视图装配 ---------- */
+  function renderDisc() {
+    const host = $('#discWrap');
+    if (!host) return;
+    const ord = circleOrdered();
+    if (!ord.length) return;
+
+    let current = ord[0];     // 默认乾卦
+    let seq = 0;
+
+    host.innerHTML = `
+      <div class="disc-layout">
+        <div class="disc-stage-host" id="discStage"></div>
+        <aside class="disc-side" id="discSide"></aside>
+      </div>`;
+
+    const stage = $('#discStage');
+    const side = $('#discSide');
+
+    async function show(h) {
+      current = h;
+      const my = ++seq;
+      side.innerHTML = sideHTML(h, yaoCache[h.id] || null);
+      const items = await loadYao(h);
+      if (my === seq && items) side.innerHTML = sideHTML(h, items);
+    }
+
+    function draw() {
+      stage.className = 'disc-stage-host is-square';
+      renderMatrix(stage, show);
+      show(current);
+    }
+
+    draw();
+  }
+
   /* ---------- 目录渲染 ---------- */
   function renderToc() {
     $('#tocCount').textContent = M.meta.total;
     const ft = M.meta.frontTotal || 0;
     $('.tocv-title').textContent = `先读前置 ${ft} 篇，再览六十四卦`;
+
+    // 大目录序号用中文数字（一 二 三 …）
+    const CN_NUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
 
     $('#tocViewBody').innerHTML = M.meta.groups.map((g, gi) => {
       const isFrontGroup = !!g.isFront;
@@ -178,23 +560,34 @@
         : M.articles.filter((a) => a.group === g.key);
       const unit = isFrontGroup ? '篇' : '卦';
 
+      // 横条卡片：小目录序号保持 01 02 03
+      // 六十四卦顺序 = 数字 + 卦象 + 卦名 + 全称
+      const body = `<div class="tocv-list${isFrontGroup ? ' is-front' : ''}">
+          ${list.map((a) => isFrontGroup
+            ? `<a class="tocv-item" href="#/p/${a.id}">
+                 <span class="tocv-no">${String(a.seq || a.n).padStart(2, '0')}</span>
+                 <span class="tocv-glyph" aria-hidden="true">◆</span>
+                 <span class="tocv-name">${esc(a.short || a.name)}</span>
+                 <span class="tocv-meta">约 ${a.mins} 分钟</span>
+               </a>`
+            : `<a class="tocv-item" href="#/p/${a.id}" title="${esc(a.name)}卦 · ${esc(a.full)}">
+                 <span class="tocv-no">${String(a.n).padStart(2, '0')}</span>
+                 <span class="tocv-glyph" aria-hidden="true">${a.symbol}</span>
+                 <span class="tocv-name">${esc(a.name)}</span>
+                 <span class="tocv-full">${esc(a.full)}</span>
+                 ${pulseSVG(a.binary, 'tocv-pulse')}
+               </a>`).join('')}
+        </div>`;
+
       return `
       <section class="tocv-group${isFrontGroup ? ' toc-front' : ''}" id="group-${g.key}">
         <div class="tocv-ghead">
-          <span class="tocv-gno">${String(gi + 1).padStart(2, '0')}</span>
+          <span class="tocv-gno">${CN_NUM[gi] || (gi + 1)}</span>
           <span class="tocv-gname">${esc(g.name)}</span>
           <span class="tocv-gsub">${esc(g.sub)}</span>
           <span class="tocv-gcnt">${list.length} ${unit}</span>
         </div>
-        <div class="tocv-list${isFrontGroup ? ' is-front' : ''}">
-          ${list.map((a, i) => `
-            <a class="tocv-item" href="#/p/${a.id}">
-              <span class="tocv-glyph" aria-hidden="true">${isFrontGroup ? '◆' : a.symbol}</span>
-              <span class="tocv-no">${String(a.seq || a.n).padStart(2, '0')}</span>
-              <span class="tocv-name">${esc(isFrontGroup ? a.short || a.name : a.name)}</span>
-              <span class="tocv-meta">${esc(isFrontGroup ? `约 ${a.mins} 分钟` : a.full)}</span>
-            </a>`).join('')}
-        </div>
+        ${body}
       </section>`;
     }).join('');
   }
@@ -266,6 +659,7 @@
     }
     body.insertBefore(head, body.firstChild);
 
+    renderPaywall(a);
     buildToc();
     buildNav(a);
     renderPetPanel(a.id);
@@ -275,6 +669,258 @@
       const target = document.getElementById(sec);
       if (target) requestAnimationFrame(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     }
+  }
+
+  /* ==========================================================================
+     付费墙渲染
+     --------------------------------------------------------------------------
+     设计立场（依据调研结论）：
+       · 不做硬拦截。免费部分（原文/彖传/象传/六爻/白话/应用）全部照常读完，
+         付费卡出现在正文之后。读者此时已经拿到价值，付费是「继续」而非「勒索」。
+       · 信任是这个品类的核心障碍 —— 官媒已点名「国学直播乱象」。因此：
+         价格透明、交付物逐条列出、给出真实样例（不是承诺）、
+         明确声明不涉及占卜预测、标注学术依据。
+       · 两条解锁路径并列：买（跳转平台）或已有码（输入框）。
+     ========================================================================== */
+
+  /** 取这篇的付费卡数据（来自 manifest.meta.premium.cards） */
+  function premiumCard(id) {
+    const P = M && M.meta && M.meta.premium;
+    if (!P || !P.cards) return null;
+    return P.cards[id] || null;
+  }
+
+  /** 渲染购买渠道按钮 */
+  function buyButtonsHtml() {
+    if (typeof window.Payment === 'undefined') return '';
+    const channels = window.Payment.channels();
+    if (!channels.length) {
+      return '<div class="pw-msg">购买渠道尚未开放。若你已购买，可直接在下方输入授权码；' +
+        '否则请稍后再来。</div>';
+    }
+    return channels.map((c, i) => {
+      const primary = i === 0 && !c.isManual;
+      const glyph = c.isManual ? '✉' : '↗';
+      const ext = c.isManual ? '' : ' target="_blank" rel="noopener noreferrer"';
+      return '<a class="pw-buy-btn' + (primary ? '' : ' is-secondary') +
+        '" href="' + esc(c.url) + '"' + ext + '>' +
+        '<span class="pw-buy-glyph" aria-hidden="true">' + glyph + '</span>' +
+        '<span class="pw-buy-main">' +
+          '<span class="pw-buy-name">' + esc(c.name) + '购买</span>' +
+          '<span class="pw-buy-desc">' + esc(c.desc) + '</span>' +
+        '</span>' +
+        (c.fee ? '<span class="pw-buy-fee">费率 ' + esc(c.fee) + '</span>' : '') +
+      '</a>';
+    }).join('');
+  }
+
+  /** 构建付费卡 DOM（未解锁时） */
+  function paywallHtml(id) {
+    const card = premiumCard(id);
+    const tier = (card && card.tier) || 'PREM';
+    const price = (typeof window.Payment !== 'undefined') ? window.Payment.priceText() : '';
+    const pcfg = (typeof window.Payment !== 'undefined') ? window.Payment.config : {};
+    const sample = card && card.sample;
+
+    const includes = (card && card.includes && card.includes.length)
+      ? '<div class="pw-sec-tt">你会得到什么</div>' +
+        '<ul class="pw-list">' + card.includes.map((li) => '<li>' + li + '</li>').join('') + '</ul>'
+      : '';
+
+    const sampleHtml = sample
+      ? '<div class="pw-sample">' +
+          '<div class="pw-sample-tt">样 例 · 付费章节节选</div>' +
+          '<p class="pw-sample-quote">' + esc(sample.quote) + '</p>' +
+          '<p class="pw-sample-body">' + esc(sample.body) + '</p>' +
+          '<p class="pw-sample-fade">' + esc(sample.fade) + '</p>' +
+        '</div>'
+      : '';
+
+    const priceHtml = price
+      ? '<div class="pw-price-row">' +
+          '<div class="pw-price"><small>￥</small>' +
+            esc(String(price).replace(/^[¥￥]/, '')) + '</div>' +
+          '<div class="pw-price-meta">' +
+            '<div class="pw-price-note">' + esc(pcfg.priceNote || '') + '</div>' +
+            (pcfg.priceAnchor ? '<div class="pw-price-anchor">' + esc(pcfg.priceAnchor) + '</div>' : '') +
+          '</div>' +
+        '</div>'
+      : '';
+
+    return [
+      '<section class="paywall" id="paywall" data-tier="' + esc(tier) + '">',
+      '  <div class="pw-head">',
+      '    <span class="pw-eyebrow">PREMIUM · 深度解读</span>',
+      '    <h2 class="pw-title">以上的白话与爻辞是免费的。<br>下面是把它用起来的部分。</h2>',
+      '    <p class="pw-sub">',
+      '      免费部分回答「这一卦说了什么」；付费章节回答「我现在该怎么做」。',
+      '      逐爻拆解你所处的阶段、史书中的真实印证，以及一套可自测的判断方法。',
+      '    </p>',
+      '  </div>',
+      '  <div class="pw-body">',
+      '    ' + includes,
+      '    ' + sampleHtml,
+      '    ' + priceHtml,
+      '    <div class="pw-buy">' + buyButtonsHtml() + '</div>',
+      '    <div class="pw-unlock" id="pwUnlock">',
+      '      <div class="pw-unlock-tt">已经购买了？输入授权码解锁</div>',
+      '      <div class="pw-unlock-note">',
+      '        授权码形如 <code>ZY-PREM-XXXX-XXXX-X</code>，在你下单后由平台自动发送。',
+      '        输入一次即可，之后本机浏览器会记住。',
+      '      </div>',
+      '      <form class="pw-unlock-row" id="pwForm" autocomplete="off">',
+      '        <input class="pw-input" id="pwInput" type="text"',
+      '               placeholder="ZY-PREM-XXXX-XXXX-X" aria-label="授权码"',
+      '               spellcheck="false" autocapitalize="characters">',
+      '        <button class="pw-submit" type="submit">解锁</button>',
+      '      </form>',
+      '      <div class="pw-msg" id="pwMsg" role="status"></div>',
+      '    </div>',
+      '    <div class="pw-trust">',
+      '      <div class="pw-trust-tt">关 于 本 站</div>',
+      '      <div class="pw-trust-grid">',
+      '        <div class="pw-trust-item is-no">',
+      '          <b>不涉及占卜预测</b>',
+      '          本站不提供算命、占卜、择日、改运等任何服务，也不承诺任何结果。',
+      '        </div>',
+      '        <div class="pw-trust-item is-yes">',
+      '          <b>经文有据</b>',
+      '          卦辞、彖传、象传、爻辞依据通行本《周易》；解读参考历代注疏，',
+      '          书目见<a href="#/p/refs">参考书目</a>页。',
+      '        </div>',
+      '        <div class="pw-trust-item is-yes">',
+      '          <b>一次买断，非订阅</b>',
+      '          不自动续费，不收集手机号，不发送营销信息。',
+      '        </div>',
+      '        <div class="pw-trust-item is-yes">',
+      '          <b>买到的是什么</b>',
+      '          一份可以读完的文本，不是课程、不是社群、不是「陪跑」。',
+      '        </div>',
+      '      </div>',
+      '    </div>',
+      '    <div class="pw-disclaimer">',
+      '      <b>说明：</b>付费章节是《周易》文本的现代解读与古代史例分析，属于阅读与思考材料，',
+      '      <b>不构成任何决策建议、投资建议或医疗建议</b>。',
+      '      本站为静态站点，授权码在本机浏览器校验；如遇问题请通过页脚邮箱联系，24 小时内处理。',
+      '    </div>',
+      '  </div>',
+      '</section>',
+    ].join('\n');
+  }
+
+  /**
+   * 已解锁状态。
+   * 注意：付费正文（depth）在构建期就【没有】写进静态产物，
+   * 所以静态版本这里只能展示样例 + 说明。接入 Cloudflare Worker
+   * （见 assets/paywall-worker.example.js）后，此处改为 fetch 正文即可。
+   */
+  function unlockedHtml(id) {
+    const card = premiumCard(id);
+    const sample = card && card.sample;
+    return [
+      '<section class="pw-gated-body" id="s-premium-full">',
+      '  <h2 id="p-full">深度解读</h2>',
+      sample ? '  <div class="pw-sample">' +
+        '<div class="pw-sample-tt">样 例 · 章节节选</div>' +
+        '<p class="pw-sample-quote">' + esc(sample.quote) + '</p>' +
+        '<p class="pw-sample-body">' + esc(sample.body) + '</p>' +
+        '</div>' : '',
+      '  <p class="load-state">完整章节由服务端按授权码下发（当前部署为纯静态版本，尚未接入）。',
+      '     你已解锁本站，接入后无需再次付费。</p>',
+      '</section>',
+      '<div class="pw-unlocked-bar">',
+      '  <span class="pw-ub-mark">✓</span>',
+      '  <span>已解锁 · ' + esc(Entitlement.label() || '已授权') + '</span>',
+      '  <button type="button" id="pwReset">在本机清除授权</button>',
+      '</div>',
+    ].join('\n');
+  }
+
+  /**
+   * 给正文装配付费墙。必须在 body.innerHTML = html 之后调用。
+   * @param {object} a 文章对象
+   */
+  function renderPaywall(a) {
+    const host = $('#artBody');
+    if (!host) return;
+
+    // 非付费文章：什么都不做（优雅降级 —— manifest 无 tier 信息时全站免费）
+    if (!Entitlement.needsPaywall(a.id)) return;
+
+    // 未解锁时，构建期写入的 teaser 由完整付费卡代替
+    const gate = host.querySelector('.pw-gated');
+    if (gate) gate.remove();
+
+    const unlocked = Entitlement.isUnlocked(a.id);
+    const wrap = document.createElement('div');
+    wrap.innerHTML = unlocked ? unlockedHtml(a.id) : paywallHtml(a.id);
+    while (wrap.firstChild) host.appendChild(wrap.firstChild);
+
+    if (unlocked) {
+      const reset = $('#pwReset');
+      if (reset) {
+        reset.onclick = () => {
+          Entitlement.reset();
+          toast('已在本机清除授权');
+          const art = byId(a.id);
+          if (art) showArticle(art);
+        };
+      }
+      return;
+    }
+
+    bindPaywallForm(a);
+  }
+
+  /** 绑定解锁表单 */
+  function bindPaywallForm(a) {
+    const form = $('#pwForm');
+    const input = $('#pwInput');
+    const msg = $('#pwMsg');
+    if (!form || !input) return;
+
+    // 输入时自动按 4 位分组，降低抄错概率
+    input.addEventListener('input', () => {
+      const raw = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16);
+      const groups = [];
+      for (let i = 0; i < raw.length; i += 4) groups.push(raw.slice(i, i + 4));
+      input.value = groups.join('-');
+      input.classList.remove('is-error');
+      if (msg) { msg.textContent = ''; msg.className = 'pw-msg'; }
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const res = Entitlement.unlock(input.value);
+
+      if (!res.ok) {
+        input.classList.add('is-error');
+        if (msg) {
+          msg.className = 'pw-msg is-error';
+          msg.textContent = res.reason || '解锁失败，请检查授权码。';
+        }
+        return;
+      }
+
+      // 码有效但不覆盖这篇（例如乾坤专享码去开别的卦）
+      if (!res.covers) {
+        if (msg) {
+          msg.className = 'pw-msg is-error';
+          msg.textContent = '授权已生效（' + res.label + '），但该等级不包含本卦。请使用「全站通行」授权码。';
+        }
+        return;
+      }
+
+      if (msg) {
+        msg.className = 'pw-msg is-ok';
+        msg.textContent = '解锁成功 · ' + res.label;
+      }
+      toast('已解锁，正在载入…');
+      setTimeout(() => {
+        const art = byId(a.id);
+        if (art) showArticle(art);
+      }, 700);
+    });
   }
 
   function buildToc() {
@@ -394,13 +1040,19 @@
   /* ---------- 卦象浮动面板 ---------- */
   function renderPetPanel(activeId) {
     const body = $('#petPanelBody');
-    const fl = frontList();
+    const allFront = frontList();
 
-    const frontHtml = fl.map((a) => `
+    // 前置篇（不含参考书目）与参考书目分开成组
+    const fl = allFront.filter((a) => !a.isRefs);
+    const refs = allFront.filter((a) => a.isRefs);
+
+    const item = (a, glyph) => `
       <a class="pet-item${a.id === activeId ? ' on' : ''}" href="#/p/${a.id}">
-        <span class="pi-glyph" aria-hidden="true">◆</span>
+        <span class="pi-glyph" aria-hidden="true">${glyph}</span>
         <span class="pi-name">${esc(a.short || a.name)}</span>
-      </a>`).join('');
+      </a>`;
+
+    const frontHtml = fl.map((a) => item(a, '◆')).join('');
 
     const hexHtml = M.articles.map((a) => `
       <a class="pet-item${a.id === activeId ? ' on' : ''}" href="#/p/${a.id}">
@@ -409,13 +1061,19 @@
         <span class="pi-name">${esc(a.name)}<span class="pi-full">${esc(a.full)}</span></span>
       </a>`).join('');
 
+    const refsHtml = refs.length
+      ? `<div class="pet-sec">参考书目</div>${refs.map((a) => item(a, '书')).join('')}`
+      : '';
+
     body.innerHTML = `
       <div class="pet-sec">前置篇</div>
       ${frontHtml}
       <div class="pet-sec">六十四卦</div>
-      ${hexHtml}`;
+      ${hexHtml}
+      ${refsHtml}`;
 
-    $('#petPanelFt').textContent = `前置 ${fl.length} 篇 · 六十四卦 · 点击跳转`;
+    $('#petPanelFt').textContent =
+      `前置 ${fl.length} 篇 · 六十四卦 ${M.articles.length} 卦${refs.length ? ' · 参考书目' : ''} · 点击跳转`;
   }
 
   /* ---------- 搜索 ---------- */
@@ -580,7 +1238,6 @@
 
     $('#searchBtn').onclick = openSearch;
     $('#tocBtn').onclick = () => { location.hash = '#/toc'; };
-    $('#themeBtn').onclick = toggleTheme;
 
     $$('[data-act="search"]').forEach((b) => (b.onclick = (e) => { e.preventDefault(); openSearch(); }));
     $$('[data-act="toc"]').forEach((b) => (b.onclick = (e) => { e.preventDefault(); location.hash = '#/toc'; }));
@@ -650,7 +1307,6 @@
 
   /* ---------- 启动 ---------- */
   async function boot() {
-    initTheme();
     try {
       M = await getJSON('data/manifest.json');
     } catch (e) {
@@ -668,3 +1324,9 @@
     boot();
   }
 })();
+
+
+
+
+
+

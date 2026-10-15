@@ -27,11 +27,30 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Assemble public site
+        # ⚠️ 只发布站点本体。
+        # 绝不能整仓发布 —— content/ 里是付费深度正文（含 depth），
+        # build/ 里有密钥生成器，都不该出现在公网。
+        run: |
+          set -e
+          mkdir -p _site
+          cp -r index.html assets articles data _site/
+          # 404 与其它静态资源（若存在）
+          [ -f 404.html ] && cp 404.html _site/ || true
+          [ -f CNAME ] && cp CNAME _site/ || true
+          echo "── 待发布文件 ──"
+          find _site -type f | sort | head -50
+          echo "文件总数: $(find _site -type f | wc -l)"
+          echo "── 安全检查：确认付费正文未混入 ──"
+          if grep -rl "坤雖臣道\|坤虽臣道" _site/ 2>/dev/null; then
+            echo "❌ 付费正文泄露，终止部署"; exit 1
+          fi
+          echo "✓ 未发现付费正文"
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # 只发布站点本体，不发布构建脚本与文档
-          path: .
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment

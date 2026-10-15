@@ -1,0 +1,333 @@
+/* ==========================================================================
+   周易六十四卦 · 付费墙样式
+   --------------------------------------------------------------------------
+   设计原则（按调研结论）：
+     1. 不要硬拦截。免费部分照常读完，付费卡出现在正文之后。
+        读者已经获得价值，此时付费是「继续」，不是「勒索」。
+     2. 信任优先。官媒已点名「国学直播乱象」，读者对这类内容天然戒备。
+        所以：价格透明、交付物清单化、明确写「不涉及占卜预测」、
+        标注学术依据。任何夸大、紧迫感话术都会适得其反。
+     3. 视觉上延续站点的暖纸/墨/朱砂语言，不用互联网常见的
+        渐变大按钮 —— 那会立刻显得像割韭菜的落地页。
+
+   变量全部复用 app.css 的 :root，不新增颜色。
+   ========================================================================== */
+
+/* ---------- 锁定段落：渐隐 + 不可选中 ---------- */
+.pw-locked {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 付费段落：只发布摘要，正文根本不在静态产物里（见构建脚本注释）。
+   这里给摘要一个明显的「未完成」视觉，读者一眼知道后面还有东西。 */
+.pw-teaser {
+  margin: 26px 0;
+  padding: 24px 28px;
+  background: var(--card);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--radius-sm);
+  position: relative;
+}
+.pw-teaser .pw-tag {
+  position: absolute; top: -9px; left: 20px;
+  background: var(--paper);
+  padding: 0 9px;
+  font-size: 10.5px; letter-spacing: .2em; font-weight: 700;
+  color: var(--cinnabar);
+}
+.pw-teaser p { margin: 0; }
+.pw-teaser .pw-more {
+  display: block; margin-top: 14px;
+  font-family: var(--sans); font-size: 13px; color: var(--ink-4);
+}
+/* 渐隐掉最后一行，暗示「下面还有」 */
+.pw-teaser::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: 0; height: 46px;
+  background: linear-gradient(to bottom, transparent, var(--card));
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   付费卡主体
+   ========================================================================== */
+.paywall {
+  margin: 46px 0 20px;
+  background: var(--paper-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* 顶部朱砂细线 —— 站点里「重要」的统一信号 */
+.paywall::before {
+  content: '';
+  display: block; height: 3px;
+  background: linear-gradient(to right, var(--cinnabar), var(--gold));
+}
+
+.pw-head {
+  padding: 30px 34px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+.pw-eyebrow {
+  display: block;
+  font-size: 10.5px; letter-spacing: .24em; font-weight: 700;
+  color: var(--cinnabar); margin-bottom: 12px;
+}
+.pw-title {
+  font-family: var(--serif);
+  font-size: 26px; font-weight: 700; line-height: 1.4;
+  color: var(--ink); margin: 0 0 10px;
+  letter-spacing: .01em;
+}
+.pw-sub {
+  font-size: 14.5px; line-height: 1.85; color: var(--ink-3);
+  margin: 0; max-width: 62ch;
+}
+
+.pw-body { padding: 28px 34px 30px; }
+
+/* ---------- 交付物清单 ---------- */
+.pw-sec-tt {
+  font-family: var(--serif);
+  font-size: 15px; font-weight: 700; color: var(--ink);
+  margin: 0 0 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.pw-sec-tt::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
+
+.pw-list { list-style: none; padding: 0; margin: 0 0 28px; }
+.pw-list li {
+  position: relative;
+  padding: 11px 0 11px 30px;
+  font-size: 14.5px; line-height: 1.75; color: var(--ink-2);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+}
+.pw-list li:last-child { border-bottom: none; }
+.pw-list li::before {
+  content: '✓';
+  position: absolute; left: 4px; top: 11px;
+  font-size: 13px; font-weight: 700; color: var(--jade);
+}
+.pw-list li b { color: var(--ink); font-weight: 600; }
+.pw-list li .pw-dim { color: var(--ink-4); font-size: 13px; }
+
+/* ---------- 样例预览（展示深度，而非承诺） ---------- */
+.pw-sample {
+  margin: 0 0 28px;
+  padding: 22px 26px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius-sm);
+}
+.pw-sample-tt {
+  font-size: 10.5px; letter-spacing: .2em; font-weight: 700;
+  color: var(--gold); margin-bottom: 12px;
+}
+.pw-sample-quote {
+  font-family: var(--serif);
+  font-size: 15.5px; line-height: 2; color: var(--ink);
+  margin: 0 0 14px;
+  padding-left: 16px;
+  border-left: 2px solid var(--line-2);
+}
+.pw-sample-body { font-size: 14.5px; line-height: 1.95; color: var(--ink-2); margin: 0; }
+.pw-sample-fade {
+  margin-top: 12px; font-size: 12.5px; color: var(--ink-4);
+  font-style: normal; letter-spacing: .03em;
+}
+
+/* ---------- 价格 ---------- */
+.pw-price-row {
+  display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+  padding: 22px 0 4px;
+  border-top: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+.pw-price {
+  font-family: var(--serif);
+  font-size: 40px; font-weight: 700; line-height: 1;
+  color: var(--ink); letter-spacing: -.01em;
+  display: inline-flex; align-items: baseline; gap: 2px;
+  white-space: nowrap;
+  /* 与右侧说明文字基线对齐，避免「¥」符号被 flex 拉高 */
+  flex: 0 0 auto;
+}
+.pw-price small { font-size: 20px; font-weight: 600; }
+.pw-price-meta { padding-bottom: 4px; min-width: 200px; }
+.pw-price-note { font-size: 13.5px; color: var(--ink-3); line-height: 1.7; }
+.pw-price-anchor { font-size: 12.5px; color: var(--ink-4); margin-top: 4px; }
+
+/* ---------- 购买按钮 ---------- */
+.pw-buy { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.pw-buy-btn {
+  display: flex; align-items: center; gap: 14px;
+  padding: 15px 20px;
+  background: var(--ink); color: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: background .18s, border-color .18s, transform .18s;
+}
+.pw-buy-btn:hover {
+  background: var(--cinnabar); border-color: var(--cinnabar);
+  transform: translateY(-1px);
+}
+.pw-buy-btn .pw-buy-glyph {
+  font-family: var(--serif); font-size: 19px; line-height: 1;
+  opacity: .85;
+}
+.pw-buy-btn .pw-buy-main { flex: 1; min-width: 0; }
+.pw-buy-btn .pw-buy-name { font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+.pw-buy-btn .pw-buy-desc {
+  font-size: 12.5px; opacity: .78; margin-top: 3px; line-height: 1.6;
+}
+.pw-buy-btn .pw-buy-fee {
+  font-size: 11px; opacity: .6; white-space: nowrap;
+  align-self: flex-start; padding-top: 2px;
+}
+.pw-buy-btn.is-secondary {
+  background: var(--card); color: var(--ink-2); border-color: var(--line-2);
+}
+.pw-buy-btn.is-secondary:hover {
+  background: var(--ink); color: var(--paper); border-color: var(--ink);
+}
+
+/* ---------- 解锁码输入 ---------- */
+.pw-unlock {
+  padding: 20px 22px;
+  background: color-mix(in srgb, var(--paper-2) 70%, var(--card));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  margin-bottom: 24px;
+}
+.pw-unlock-tt {
+  font-size: 13.5px; font-weight: 600; color: var(--ink);
+  margin-bottom: 6px;
+}
+.pw-unlock-note { font-size: 12.5px; color: var(--ink-4); line-height: 1.7; margin-bottom: 14px; }
+.pw-unlock-row { display: flex; gap: 9px; flex-wrap: wrap; }
+.pw-input {
+  flex: 1; min-width: 210px;
+  padding: 12px 15px;
+  font-family: var(--sans);
+  font-size: 14.5px; letter-spacing: .11em;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color .18s, box-shadow .18s;
+}
+.pw-input::placeholder { color: var(--ink-4); letter-spacing: .08em; }
+.pw-input:focus {
+  border-color: var(--cinnabar);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cinnabar) 13%, transparent);
+}
+.pw-input.is-error { border-color: var(--cinnabar); }
+
+.pw-submit {
+  padding: 12px 24px;
+  font-family: var(--sans); font-size: 14px; font-weight: 600;
+  letter-spacing: .05em;
+  color: var(--paper); background: var(--cinnabar);
+  border: 1px solid var(--cinnabar);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background .18s, transform .18s;
+}
+.pw-submit:hover { background: var(--cinnabar-2); border-color: var(--cinnabar-2); transform: translateY(-1px); }
+
+.pw-msg { margin-top: 12px; font-size: 13px; line-height: 1.7; min-height: 0; }
+.pw-msg.is-error { color: var(--cinnabar); }
+.pw-msg.is-ok { color: var(--jade); }
+
+/* ---------- 信任区（对标官媒点名的乱象） ---------- */
+.pw-trust {
+  padding: 22px 24px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  margin-bottom: 22px;
+}
+.pw-trust-tt {
+  font-size: 10.5px; letter-spacing: .2em; font-weight: 700;
+  color: var(--ink-4); margin-bottom: 14px;
+}
+.pw-trust-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 16px 22px;
+}
+.pw-trust-item { font-size: 13px; line-height: 1.8; color: var(--ink-3); }
+.pw-trust-item b {
+  display: block; color: var(--ink); font-size: 13.5px;
+  font-weight: 600; margin-bottom: 4px;
+}
+.pw-trust-item.is-no b { color: var(--cinnabar); }
+.pw-trust-item.is-yes b { color: var(--jade); }
+
+/* 免责声明 */
+.pw-disclaimer {
+  font-size: 12.5px; line-height: 1.85; color: var(--ink-4);
+  padding-top: 18px; border-top: 1px solid var(--line);
+}
+.pw-disclaimer b { color: var(--ink-3); font-weight: 600; }
+
+/* ---------- 已解锁状态 ---------- */
+.pw-unlocked-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 34px 0 18px;
+  padding: 13px 18px;
+  background: color-mix(in srgb, var(--jade) 7%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--jade) 26%, var(--line));
+  border-radius: var(--radius-sm);
+  font-size: 13px; color: var(--ink-2);
+}
+.pw-unlocked-bar .pw-ub-mark { color: var(--jade); font-weight: 700; }
+.pw-unlocked-bar button {
+  margin-left: auto;
+  background: none; border: none; cursor: pointer;
+  font-family: var(--sans); font-size: 12.5px; color: var(--ink-4);
+  text-decoration: underline; text-underline-offset: 3px;
+  padding: 0;
+}
+.pw-unlocked-bar button:hover { color: var(--cinnabar); }
+
+/* 目录/封面上的付费标记 */
+.pw-badge {
+  display: inline-block;
+  font-size: 10px; font-weight: 700; letter-spacing: .12em;
+  padding: 2px 7px; border-radius: 999px;
+  color: var(--cinnabar);
+  background: color-mix(in srgb, var(--cinnabar) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cinnabar) 30%, transparent);
+  vertical-align: middle;
+  margin-left: 7px;
+}
+.tocv-item .pw-badge { margin-left: 8px; }
+.pet-item .pw-badge { margin-left: 5px; font-size: 9px; padding: 1px 5px; }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 620px) {
+  .pw-head { padding: 24px 20px 20px; }
+  .pw-title { font-size: 21px; }
+  .pw-body { padding: 22px 20px 24px; }
+  .pw-price { font-size: 33px; }
+  .pw-trust-grid { grid-template-columns: 1fr; }
+  .pw-unlock-row { flex-direction: column; }
+  .pw-submit { width: 100%; }
+  .pw-unlocked-bar button { margin-left: 0; }
+}
+
+/* ---------- 打印：不打印付费卡 ---------- */
+@media print {
+  .paywall, .pw-teaser, .pw-unlocked-bar { display: none !important; }
+}

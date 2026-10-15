@@ -27,24 +27,6 @@
   --maxw: 1180px;
 }
 
-html[data-theme="dark"] {
-  --paper: #14140f;
-  --paper-2: #1b1a14;
-  --card: #1e1d17;
-  --ink: #ece7dc;
-  --ink-2: #c3bcae;
-  --ink-3: #948c7e;
-  --ink-4: #6b6459;
-  --line: #333027;
-  --line-2: #423e32;
-  --cinnabar: #d4574a;
-  --cinnabar-2: #e06a5c;
-  --gold: #c9a860;
-  --jade: #6fa78f;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .6);
-  --shadow-lg: 0 2px 4px rgba(0, 0, 0, .5), 0 24px 60px -24px rgba(0, 0, 0, .8);
-}
-
 * { box-sizing: border-box; }
 
 /* 关键：display 规则会覆盖 [hidden] 的 display:none，必须显式兜底 */
@@ -122,7 +104,7 @@ img { max-width: 100%; display: block; }
   border: 1px solid var(--line-2); border-radius: 4px; color: var(--ink-4);
   background: var(--paper-2);
 }
-#themeBtn { padding: 7px 11px; font-size: 15px; }
+
 
 /* ==========================================================================
    封面 · Hero
@@ -414,7 +396,15 @@ img { max-width: 100%; display: block; }
    大目录页
    ========================================================================== */
 #tocView { padding: clamp(48px, 8vw, 90px) clamp(20px, 4vw, 40px); }
-.tocv-head { max-width: var(--maxw); margin: 0 auto 52px; }
+
+/* 标题块与内容区共用同一宽度变量与左边缘，
+   否则标题会因 max-width 更小而「看起来居中」。 */
+#tocView { --tocw: 1640px; }
+.tocv-head {
+  max-width: var(--tocw);
+  margin: 0 auto 52px;
+  text-align: left;
+}
 .tocv-label { font-size: 10.5px; letter-spacing: .3em; color: var(--cinnabar); margin-bottom: 16px; }
 .tocv-title {
   font-family: var(--serif); font-size: clamp(30px, 4.6vw, 50px);
@@ -422,60 +412,98 @@ img { max-width: 100%; display: block; }
 }
 .tocv-note { font-size: 14.5px; color: var(--ink-3); margin: 0; line-height: 1.9; }
 
-.tocv-body { max-width: var(--maxw); margin: 0 auto; }
+.tocv-body { max-width: var(--tocw); margin: 0 auto; }
 .tocv-group { margin-bottom: 54px; }
 .tocv-ghead {
   display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
   padding-bottom: 14px; margin-bottom: 8px;
   border-bottom: 2px solid var(--ink);
 }
+/* 大目录序号：与分组标题同字号同字体，仅以朱砂色区分 */
 .tocv-gno {
-  font-family: var(--serif); font-size: 15px; color: var(--cinnabar);
-  font-weight: 700;
+  font-family: var(--serif); font-size: 25px; font-weight: 700;
+  color: var(--cinnabar); min-width: 1.1em; letter-spacing: .04em;
+  line-height: 1.15;
 }
 .tocv-gname { font-family: var(--serif); font-size: 25px; font-weight: 700; }
 .tocv-gsub { font-size: 13.5px; color: var(--ink-3); flex: 1; }
 .tocv-gcnt { font-size: 12px; color: var(--ink-4); letter-spacing: .08em; }
 
-/* 目录列表：亲密性原则 —— 同一卦的「符号+序号+卦名+全称」必须紧邻成组，
-   组与组之间留出足够间距，否则相邻两卦会视觉串行（尤其四列布局）。
-   做法：加大列内行距 + 交替底色分组 + 悬停时整组高亮。 */
+/* 目录列表：横条卡片。同一卦的「符号 + 序号 + 卦名 + 全称 + 心跳图」紧邻成组。
+   黑红悬停：整条反转成黑底 + 米白卦名 + 朱砂卦象 + 金色心电图。 */
 .tocv-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
-  gap: 4px 10px;              /* 行间距 > 列间距，强化「行」的成组感 */
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
   margin-top: 6px;
 }
 .tocv-item {
-  display: flex; align-items: baseline; gap: 10px;
+  display: flex; align-items: center; gap: 10px;
   padding: 14px 16px; border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  transition: background .16s, border-color .16s, transform .16s;
-  /* 组内间距极小，让四个元素读起来是一个整体 */
-  column-gap: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  transition: background .2s, border-color .2s, transform .2s, box-shadow .2s;
 }
 .tocv-item:hover {
-  background: var(--card);
-  border-color: var(--line-2);
-  transform: translateX(3px);
+  background: var(--ink);
+  border-color: var(--cinnabar);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -12px rgba(168, 50, 42, .55);
+  z-index: 2;
 }
-/* 斑马纹：进一步切断跨列串行 */
-.tocv-list .tocv-item:nth-child(4n+1),
-.tocv-list .tocv-item:nth-child(4n+2) { background: color-mix(in srgb, var(--paper-2) 55%, transparent); }
-.tocv-item:hover { background: var(--card) !important; }
 .tocv-glyph {
-  font-family: var(--serif); font-size: 24px; line-height: 1;
-  color: var(--ink-2); flex-shrink: 0; width: 28px; text-align: center;
+  font-family: var(--serif); font-size: 23px; line-height: 1;
+  color: var(--ink-2); flex-shrink: 0; width: 30px; text-align: center;
+  transition: color .2s;
 }
+.tocv-item:hover .tocv-glyph { color: var(--cinnabar-2); }
 .tocv-no {
-  font-size: 11.5px; color: var(--ink-4); font-variant-numeric: tabular-nums;
-  width: 24px; flex-shrink: 0; letter-spacing: .04em;
+  font-size: 12.5px; color: var(--ink-4); font-variant-numeric: tabular-nums;
+  width: 24px; flex-shrink: 0; letter-spacing: .02em;
+  font-family: var(--serif); font-weight: 600;
+  transition: color .2s;
 }
+.tocv-item:hover .tocv-no { color: #8f8677; }
 .tocv-name {
   font-family: var(--serif); font-size: 17px; font-weight: 600;
-  flex-shrink: 0;
+  flex-shrink: 0; min-width: 2.6em;
+  transition: color .2s;
 }
-/* 全称：与卦名拉开距离并用分隔点，明确它属于左边那一卦 */
+.tocv-item:hover .tocv-name { color: var(--paper); }
+.tocv-full {
+  font-size: 12.5px; color: var(--ink-3);
+  flex: 1 1 auto;
+  letter-spacing: .04em; white-space: nowrap;
+  transition: color .2s;
+}
+.tocv-item:hover .tocv-full { color: #8f8677; }
+/* 心跳图：竖向，与卦象同向。自下而上对应初爻→上爻；
+   左凸 = 阳爻，右凹 = 阴爻。 */
+.tocv-pulse {
+  flex-shrink: 0;
+  display: block; width: 82px; height: 22px;   /* 横向：左=初爻，右=上爻 */
+  overflow: visible;
+  margin-left: 2px;
+}
+.tocv-pulse .pl-line {
+  fill: none;
+  stroke: var(--ink-4);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke .2s, opacity .2s;
+  opacity: .58;
+}
+.tocv-pulse .pl-dot {
+  fill: var(--cinnabar);
+  opacity: .85;
+  transition: fill .2s;
+}
+/* 悬停：心电图转金 */
+.tocv-item:hover .tocv-pulse .pl-line { stroke: #c9a860; opacity: 1; }
+.tocv-item:hover .tocv-pulse .pl-dot { fill: #e8b54a; opacity: 1; }
+
+/* 前置篇列表里的「约 N 分钟」仍走原来的 meta 样式 */
 .tocv-meta {
   font-size: 12px; color: var(--ink-4);
   margin-left: auto; flex-shrink: 0;
@@ -489,6 +517,66 @@ img { max-width: 100%; display: block; }
 }
 
 .tocv-foot { max-width: var(--maxw); margin: 40px auto 0; }
+
+/* ==========================================================================
+   参考书目页
+   与目录同构：横条卡片 + 黑红悬停
+   ========================================================================== */
+.ref-stats {
+  display: flex; gap: 34px; flex-wrap: wrap;
+  margin: 26px 0 40px; padding: 20px 24px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.ref-stats > div { display: flex; flex-direction: column; gap: 2px; }
+.ref-stats b {
+  font-family: var(--serif); font-size: 30px; font-weight: 700;
+  color: var(--cinnabar); line-height: 1;
+}
+.ref-stats span { font-size: 12px; color: var(--ink-4); letter-spacing: .1em; }
+
+.ref-sub {
+  font-size: 13px; color: var(--ink-4);
+  margin: -8px 0 18px; letter-spacing: .04em;
+}
+
+.ref-list {
+  list-style: none; padding: 0; margin: 0 0 8px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+}
+.ref-list li {
+  display: flex; align-items: baseline; gap: 9px;
+  padding: 13px 16px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--card);
+  transition: background .2s, border-color .2s, transform .2s, box-shadow .2s;
+}
+/* 黑红悬停（与目录一致） */
+.ref-list li:hover {
+  background: var(--ink);
+  border-color: var(--cinnabar);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -12px rgba(168, 50, 42, .55);
+}
+.rf-tt {
+  font-family: var(--serif); font-size: 15.5px; font-weight: 600;
+  color: var(--ink); flex: 1 1 auto; min-width: 0;
+  transition: color .2s;
+}
+.ref-list li:hover .rf-tt { color: var(--paper); }
+.rf-au {
+  font-size: 12px; color: var(--ink-4); flex-shrink: 0;
+  transition: color .2s;
+}
+.ref-list li:hover .rf-au { color: #8f8677; }
+.rf-vol {
+  font-size: 11.5px; color: var(--cinnabar);
+  border: 1px solid color-mix(in srgb, var(--cinnabar) 32%, transparent);
+  border-radius: 999px; padding: 1px 9px; flex-shrink: 0;
+  transition: color .2s, border-color .2s;
+}
+.ref-list li:hover .rf-vol { color: var(--cinnabar-2); border-color: var(--cinnabar-2); }
 
 /* ==========================================================================
    正文页
@@ -792,18 +880,22 @@ img { max-width: 100%; display: block; }
 .tocv-group.toc-front .tocv-ghead { border-bottom-color: var(--cinnabar); }
 .tocv-group.toc-front .tocv-gname { color: var(--cinnabar); }
 .tocv-list.is-front { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
-.tocv-list.is-front .tocv-item:nth-child(4n+1),
-.tocv-list.is-front .tocv-item:nth-child(4n+2) { background: transparent; }
+.tocv-list.is-front .tocv-item { gap: 10px; }
+/* 前置篇静态态：与六十四卦完全一致的白底卡片，
+   差异仅在于用朱砂菱形（◆）代替卦象 */
 .tocv-list.is-front .tocv-item .tocv-glyph { color: var(--cinnabar); font-size: 13px; }
-.tocv-list.is-front .tocv-item {
-  background: color-mix(in srgb, var(--cinnabar) 4%, transparent);
-  border-color: color-mix(in srgb, var(--cinnabar) 14%, var(--line));
-  margin-bottom: 4px;
-}
+/* 前置篇悬停：与六十四卦完全一致的黑红（沿用 .tocv-item:hover 的规则，
+   此处只补一条更高优先级的兜底，防止静态底色盖住黑底） */
 .tocv-list.is-front .tocv-item:hover {
-  background: color-mix(in srgb, var(--cinnabar) 9%, transparent) !important;
+  background: var(--ink);
   border-color: var(--cinnabar);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -12px rgba(168, 50, 42, .55);
 }
+.tocv-list.is-front .tocv-item:hover .tocv-glyph { color: var(--cinnabar-2); }
+.tocv-list.is-front .tocv-item:hover .tocv-name { color: var(--paper); }
+.tocv-list.is-front .tocv-item:hover .tocv-meta { color: #8f8677; }
+.tocv-list.is-front .tocv-item:hover .tocv-meta::before { background: #8f8677; }
 
 /* 前置篇正文头部的菱形标记 */
 .hex-head.front-head { border-left: 4px solid var(--cinnabar); }
@@ -904,3 +996,6 @@ img { max-width: 100%; display: block; }
   body { background: #fff; color: #000; }
   .article-wrap { grid-template-columns: 1fr; }
 }
+
+
+
