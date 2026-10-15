@@ -125,9 +125,10 @@ async function main() {
   ok('正文里没有 teaser 残留（已替换为付费卡）',
     !(await evaluate(`!!document.querySelector('.pw-teaser')`)));
   ok('Entitlement 全局可用', await evaluate(`typeof window.Entitlement === 'object'`));
-  ok('免费卦（屯）不受影响', await evaluate(
+  // 六十四卦全付费（2026-10 起）：换一卦也应被锁
+  ok('他卦（屯）同样被锁', await evaluate(
     `(async()=>{location.hash='#/p/zhun';await new Promise(r=>setTimeout(r,1600));
-      return !document.querySelector('.paywall') && !document.querySelector('.pw-unlocked-bar');})()`));
+      return !!document.querySelector('.paywall');})()`));
 
   console.log('\n【2】输入错误的授权码');
   await goto('#/p/qian');

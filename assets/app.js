@@ -674,12 +674,12 @@
   /* ==========================================================================
      付费墙渲染
      --------------------------------------------------------------------------
-     设计立场（依据调研结论）：
+     设计立场：
        · 不做硬拦截。免费部分（原文/彖传/象传/六爻/白话/应用）全部照常读完，
          付费卡出现在正文之后。读者此时已经拿到价值，付费是「继续」而非「勒索」。
-       · 信任是这个品类的核心障碍 —— 官媒已点名「国学直播乱象」。因此：
-         价格透明、交付物逐条列出、给出真实样例（不是承诺）、
-         明确声明不涉及占卜预测、标注学术依据。
+       · 不写免责声明、不写「关于本站」、不标学术依据 —— 用户要的是内容，
+         不是作者的自我辩解。只留三条对买家有用的：买断制、交付什么、后续修订。
+       · 两条解锁路径并列：买（跳转平台）或已有码（输入框）。
        · 两条解锁路径并列：买（跳转平台）或已有码（输入框）。
      ========================================================================== */
 
@@ -777,31 +777,20 @@
       '      <div class="pw-msg" id="pwMsg" role="status"></div>',
       '    </div>',
       '    <div class="pw-trust">',
-      '      <div class="pw-trust-tt">关 于 本 站</div>',
       '      <div class="pw-trust-grid">',
-      '        <div class="pw-trust-item is-no">',
-      '          <b>不涉及占卜预测</b>',
-      '          本站不提供算命、占卜、择日、改运等任何服务，也不承诺任何结果。',
-      '        </div>',
       '        <div class="pw-trust-item is-yes">',
-      '          <b>经文有据</b>',
-      '          卦辞、彖传、象传、爻辞依据通行本《周易》；解读参考历代注疏，',
-      '          书目见<a href="#/p/refs">参考书目</a>页。',
-      '        </div>',
-      '        <div class="pw-trust-item is-yes">',
-      '          <b>一次买断，非订阅</b>',
-      '          不自动续费，不收集手机号，不发送营销信息。',
+      '          <b>一次买断</b>',
+      '          不自动续费，不收集手机号，不发营销信息。',
       '        </div>',
       '        <div class="pw-trust-item is-yes">',
       '          <b>买到的是什么</b>',
-      '          一份可以读完的文本，不是课程、不是社群、不是「陪跑」。',
+      '          一份能读完的文本。不是课程，不是社群。',
+      '        </div>',
+      '        <div class="pw-trust-item is-yes">',
+      '          <b>后续修订免费</b>',
+      '          内容持续校订，已购的版本更新不再收费。',
       '        </div>',
       '      </div>',
-      '    </div>',
-      '    <div class="pw-disclaimer">',
-      '      <b>说明：</b>付费章节是《周易》文本的现代解读与古代史例分析，属于阅读与思考材料，',
-      '      <b>不构成任何决策建议、投资建议或医疗建议</b>。',
-      '      本站为静态站点，授权码在本机浏览器校验；如遇问题请通过页脚邮箱联系，24 小时内处理。',
       '    </div>',
       '  </div>',
       '</section>',
@@ -1305,6 +1294,76 @@
     }
   }
 
+  /* ---------- 首页 banner 知识点弹窗 ----------
+   * 点卡片不跳页，弹出浮层 —— 读者不丢失当前位置。
+   * 内容在 assets/tickets.js，此处只负责渲染与开关。
+   */
+  /* 极简内联标记：**粗体** → <strong>。先转义再替换，避免注入。 */
+  function inline(s) {
+    return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  }
+
+  function initTickets() {
+    const mask = document.getElementById('ticketMask');
+    const body = document.getElementById('tmBody');
+    const closeBtn = document.getElementById('tmClose');
+    if (!mask || !body || typeof window.TICKETS === 'undefined') return;
+
+    let lastFocus = null;
+
+    function render(key) {
+      const t = window.TICKETS[key];
+      if (!t) return false;
+      const paras = (t.body || []).map((p) => `<p>${inline(p)}</p>`).join('');
+      const points = (t.points || []).map(([k, v]) =>
+        `<div class="tm-row"><dt>${esc(k)}</dt><dd>${inline(v)}</dd></div>`).join('');
+      const cta = t.cta ? `<a class="tm-btn" href="${t.cta.href}" data-close>${esc(t.cta.label)}</a>` : '';
+      const cta2 = t.cta2 ? `<a class="tm-btn ghost" href="${t.cta2.href}" data-close>${esc(t.cta2.label)}</a>` : '';
+
+      body.innerHTML = `
+        <div class="tm-label">${esc(t.label)}</div>
+        <h2 class="tm-title" id="tmTitle">${esc(t.title)}</h2>
+        <blockquote class="tm-quote">
+          「${esc(t.quote)}」
+          ${t.quoteNote ? `<cite>${esc(t.quoteNote)}</cite>` : ''}
+        </blockquote>
+        <div class="tm-text">${paras}</div>
+        ${points ? `<dl class="tm-points">${points}</dl>` : ''}
+        ${t.why ? `<p class="tm-why">${inline(t.why)}</p>` : ''}
+        <div class="tm-cta">${cta}${cta2}</div>`;
+      return true;
+    }
+
+    function open(key) {
+      if (!render(key)) return;
+      lastFocus = document.activeElement;
+      mask.hidden = false;
+      requestAnimationFrame(() => mask.classList.add('on'));
+      closeBtn.focus();
+      document.body.style.overflow = 'hidden';
+    }
+
+    function close() {
+      mask.classList.remove('on');
+      document.body.style.overflow = '';
+      setTimeout(() => { mask.hidden = true; }, 180);
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+
+    $$('.ticket').forEach((el) => {
+      el.addEventListener('click', () => open(el.dataset.ticket));
+    });
+    closeBtn.addEventListener('click', close);
+    mask.addEventListener('click', (e) => { if (e.target === mask) close(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !mask.hidden) close();
+    });
+    // 弹窗内的跳转链接：先关窗，再让路由正常跳
+    body.addEventListener('click', (e) => {
+      if (e.target.closest('[data-close]')) close();
+    });
+  }
+
   /* ---------- 启动 ---------- */
   async function boot() {
     try {
@@ -1315,6 +1374,7 @@
     }
     renderCover();
     bind();
+    initTickets();
     await route();
   }
 
@@ -1324,6 +1384,7 @@
     boot();
   }
 })();
+
 
 
 

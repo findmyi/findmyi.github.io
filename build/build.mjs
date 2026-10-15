@@ -14,6 +14,7 @@ import { FRONT } from './front.mjs';
 import { HEX_STORY } from './yao-story.mjs';
 import { REF_SECTIONS, REF_STATS, CORPORA } from './refs-page.mjs';
 import { PREMIUM, PREMIUM_IDS, premiumOf } from '../content/premium-content.mjs';
+import { PREMIUM_V2, PREMIUM_V2_IDS } from '../content/premium-v2.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -534,6 +535,7 @@ if (PREMIUM_IDS.length) {
   console.log(`   ↳ 付费正文  ${depthChars} 字【未发布】· 仅 teaser 进静态产物`);
 }
 console.log(`   manifest    data/manifest.json`);
+
 
 
 

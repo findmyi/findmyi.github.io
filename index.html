@@ -54,10 +54,27 @@
         <a class="hero-continue" id="continueLink" href="#/" hidden>继续读《<span id="continueTitle"></span>》</a>
       </div>
 
-      <div class="hero-tickets" aria-hidden="true">
-        <div class="ticket"><b>为什么不能直接读卦</b>「孙子兵法以《计篇》为首——没有庙算，后面的行军用间全是空谈。」</div>
-        <div class="ticket"><b>乾 · 九五</b>「飞龙在天，利见大人。」</div>
-        <div class="ticket"><b>系辞</b>「穷则变，变则通，通则久。」</div>
+      <div class="hero-tickets">
+        <button class="ticket" data-ticket="why">
+          <b>为什么不能直接读卦</b>
+          <span>「孙子兵法以《计篇》为首——没有庙算，后面的行军用间全是空谈。」</span>
+        </button>
+        <button class="ticket" data-ticket="qian5">
+          <b>乾 · 九五</b>
+          <span>「飞龙在天，利见大人。」</span>
+        </button>
+        <button class="ticket" data-ticket="xici">
+          <b>系辞</b>
+          <span>「穷则变，变则通，通则久。」</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 知识点弹窗：由 banner 触发，内容见 assets/tickets.js -->
+    <div class="ticket-mask" id="ticketMask" hidden>
+      <div class="ticket-modal" role="dialog" aria-modal="true" aria-labelledby="tmTitle">
+        <button class="tm-close" id="tmClose" aria-label="关闭">×</button>
+        <div class="tm-body" id="tmBody"></div>
       </div>
     </div>
 
@@ -196,6 +213,7 @@
 <!-- 付费层：license（离线校验）→ payment（购买链接）→ app（门面 Entitlement） -->
 <script src="assets/license.js"></script>
 <script src="assets/payment.js"></script>
+<script src="assets/tickets.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>
