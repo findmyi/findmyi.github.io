@@ -1,0 +1,21 @@
+# 依赖与构建产物
+node_modules/
+*.log
+
+# 构建脚本（源数据，可选是否发布）
+# 保留：build/ 是数据真源，建议一起发布以便追溯
+
+# 本地预览截图（体积大，不入库）
+build/shots/
+
+# 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件
+_probe*.html
+*.tmp
+*.bak

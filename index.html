@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>周易六十四卦 · 白话全解</title>
+<meta name="description" content="六十四卦卦辞、彖传、象传、爻辞原文，配白话解读与处世应用。">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/content.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+
+<!-- ============ 顶栏（正文页/目录页） ============ -->
+<header class="topbar" id="topbar" hidden>
+  <a class="brand" href="#/">
+    <span class="brand-mark" aria-hidden="true">䷀</span>
+    <span class="brand-text">周易六十四卦</span>
+  </a>
+  <div class="topbar-actions">
+    <button class="pill-btn" id="searchBtn">搜索 <kbd>⌘K</kbd></button>
+    <button class="pill-btn" id="tocBtn">目录 · <span id="tocCount">64</span> 卦</button>
+    <button class="pill-btn" id="themeBtn" title="切换明暗主题" aria-label="切换明暗主题">◐</button>
+  </div>
+</header>
+
+<!-- ============ 封面 ============ -->
+<div id="coverView">
+  <section class="hero">
+    <div class="hero-rings" aria-hidden="true"></div>
+    <div class="hero-side" aria-hidden="true">周易全解 · 六十四卦 · 2026</div>
+
+    <div class="hero-top">
+      <span class="hero-eyebrow">I&nbsp;CHING&nbsp;·&nbsp;THE&nbsp;BOOK&nbsp;OF&nbsp;CHANGES</span>
+      <div class="hero-nav">
+        <button class="pill-btn ghost" data-act="search">搜索</button>
+        <button class="pill-btn ghost" data-act="toc">目录</button>
+        <button class="pill-btn ghost" data-act="random">随机一卦</button>
+      </div>
+    </div>
+
+    <div class="hero-main">
+      <div class="hero-left">
+        <div class="hero-kicker">群经之首 · 大道之源</div>
+        <h1 class="hero-title">周易<br><span class="stroke">六十四卦</span>全解</h1>
+        <p class="hero-slogan">观天之道，执天之行</p>
+        <p class="hero-sub">六十四卦是「术」，但术需要「体」才能施行。<br>先用 14 篇前置建立认知，再进入六十四卦——否则它只是签文。</p>
+        <p class="hero-author">前置 14 篇 · 卦辞 · 彖传 · 象传 · 爻辞<span class="hero-author-sep">｜</span>白话解读与处世应用</p>
+        <div class="hero-cta">
+          <a class="btn solid" href="#/p/preface">从卷首开始</a>
+          <button class="btn outline" data-act="toc">查看目录</button>
+        </div>
+        <a class="hero-continue" id="continueLink" href="#/" hidden>继续读《<span id="continueTitle"></span>》</a>
+      </div>
+
+      <div class="hero-tickets" aria-hidden="true">
+        <div class="ticket"><b>为什么不能直接读卦</b>「孙子兵法以《计篇》为首——没有庙算，后面的行军用间全是空谈。」</div>
+        <div class="ticket"><b>乾 · 九五</b>「飞龙在天，利见大人。」</div>
+        <div class="ticket"><b>系辞</b>「穷则变，变则通，通则久。」</div>
+      </div>
+    </div>
+
+    <div class="hero-bottom">
+      <div class="marquee"><div class="marquee-track" id="marqueeTrack"></div></div>
+      <div class="hero-stats" id="heroStats"></div>
+      <div class="hero-down">↓ 往下翻</div>
+    </div>
+  </section>
+
+  <section class="reading-paths" aria-label="按用途开始阅读">
+    <h2>你现在的状态，决定你从哪里开始</h2>
+    <div id="readingPaths"></div>
+  </section>
+
+  <section class="picks">
+    <div class="sec-head">
+      <span class="sec-label">MUST READ / 01-03</span>
+      <h2 class="sec-title">如果你只读三篇前置</h2>
+      <p class="sec-note">这三篇构成全部前提：为什么不能直接读卦、六十四卦如何生成、<br>以及最关键的——吉凶不是命运，是选择的结果。</p>
+      <button class="sec-all" data-act="toc">全部目录 →</button>
+    </div>
+    <div class="pick-grid" id="pickGrid"></div>
+  </section>
+
+  <section class="index-sec">
+    <div class="sec-head">
+      <span class="sec-label">INDEX / 01-05</span>
+      <h2 class="sec-title">前置是体，六十四卦是用</h2>
+      <p class="sec-note">前三组是阅读的前提，后两组是六十四卦正文。<br>建议按顺序：先立住体，再进入用。</p>
+    </div>
+    <div class="file-grid" id="fileGrid"></div>
+  </section>
+
+  <section class="closing">
+    <div class="closing-inner">
+      <div class="closing-ed">EDITION · 2026</div>
+      <h2 class="closing-title">善易者不卜。</h2>
+      <p class="closing-sub">真正读懂六十四卦的人，不必占问吉凶——因为他已看清事情的来路与去处。</p>
+      <div class="hero-cta">
+        <a class="btn solid" href="#/p/qian">开始阅读</a>
+        <button class="btn outline" data-act="toc">查看目录</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-row">
+      <span class="footer-brand">I CHING · SIXTY-FOUR HEXAGRAMS</span>
+      <span class="footer-copy">© 周易六十四卦全解</span>
+    </div>
+    <div class="footer-row sub">
+      <span>经文依据通行本《周易》，白话解读与处世应用为现代转写</span>
+      <span>64 卦 · 384 爻 · 持续校订</span>
+    </div>
+  </footer>
+</div>
+
+<!-- ============ 大目录页 ============ -->
+<main id="tocView" hidden>
+  <div class="tocv-head">
+    <div class="tocv-label">CONTENTS · 六十四卦</div>
+    <h1 class="tocv-title">六十四卦，观变之道</h1>
+    <p class="tocv-note">不必按顺序读。点任何一卦直接进正文，右下角随时带你回来。</p>
+  </div>
+  <div class="tocv-body" id="tocViewBody"></div>
+  <div class="tocv-foot"><a class="btn outline dark" href="#/">← 回到封面</a></div>
+</main>
+
+<!-- ============ 正文页 ============ -->
+<main id="articleView" hidden>
+  <div class="crumb" id="crumb"></div>
+  <div class="article-wrap">
+    <article class="article-main" id="main">
+      <h1 class="art-title" id="artTitle"></h1>
+      <div class="art-meta" id="artMeta"></div>
+      <details class="mobile-toc" id="mobileToc" hidden><summary>本页目录</summary><nav id="mobileTocLinks" aria-label="本页目录"></nav></details>
+      <div class="article-body" id="artBody" aria-live="polite"></div>
+      <nav class="art-nav" id="artNav"></nav>
+    </article>
+    <aside class="art-toc" id="artToc"></aside>
+  </div>
+</main>
+
+<!-- ============ 浮动工具条 ============ -->
+<div class="fab" id="fab" hidden>
+  <button class="fab-btn" id="fabShare" title="复制本篇链接">↗</button>
+  <button class="fab-btn" id="fabTop" title="回到顶部">↑</button>
+</div>
+
+<!-- ============ 搜索 ============ -->
+<div class="search-mask" id="searchMask" role="dialog" aria-modal="true" aria-label="搜索全书" hidden>
+  <div class="search-box">
+    <input id="searchInput" type="text" placeholder="搜卦名、卦辞、爻辞、白话…" autocomplete="off">
+    <button class="search-esc" id="searchClose" aria-label="关闭搜索">关闭</button>
+    <div class="search-list" id="searchList"></div>
+    <div class="search-foot" id="searchFoot">↑↓ 选择 · 回车打开</div>
+  </div>
+</div>
+
+<!-- ============ 阅读进度条 ============ -->
+<div class="read-progress" id="readProgress" hidden></div>
+
+<!-- ============ 索引浮动导航 ============ -->
+<div class="pet" id="pet">
+  <div class="pet-bubble" id="petBubble" hidden>点我翻目录</div>
+  <button class="pet-body" id="petBtn" aria-label="打开目录" title="目录 · 前置篇与六十四卦">
+    <span class="pet-glyph" aria-hidden="true">?</span>
+  </button>
+</div>
+<div class="pet-panel" id="petPanel" hidden>
+  <div class="pet-panel-hd">
+    <span class="pet-panel-tt">目录速览</span>
+    <button class="pet-panel-close" id="petPanelClose" title="收起">×</button>
+  </div>
+  <div class="pet-panel-body" id="petPanelBody"></div>
+  <div class="pet-panel-ft" id="petPanelFt"></div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# 统一换行符，避免 Windows 本地与 GitHub 之间反复 diff
+* text=auto eol=lf
+
+# 明确文本类型
+*.html text eol=lf
+*.css  text eol=lf
+*.js   text eol=lf
+*.mjs  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.svg  text eol=lf
+
+# 二进制
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
