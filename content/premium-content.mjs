@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    付费内容配置
    --------------------------------------------------------------------------
    结构：
@@ -13,11 +13,11 @@
    ⚠️ 铁律：depth 只在构建期供校验使用，绝不写入 articles/*.html。
       绕过前端校验也拿不到内容 —— 因为静态文件里根本没有。
 
-   depth 的真实内容在 premium-v2.mjs（由 build/md2premium.py 从
+   depth 的真实内容在 premium-v3.mjs（由 build/md2premium.py 从
    content/v2/*.md 与 content/新版-*.md 生成）。本文件只做装配。
    ========================================================================== */
 
-import { PREMIUM_V2, PREMIUM_V2_IDS } from './premium-v2.mjs';
+import { PREMIUM_V3, PREMIUM_V3_IDS } from './premium-v3.mjs';
 
 /** 每卦一致的交付说明 —— 读者关心的是「我买到什么」 */
 const INCLUDES = [
@@ -48,8 +48,8 @@ function sampleOf(html) {
 }
 
 export const PREMIUM = {};
-for (const id of PREMIUM_V2_IDS) {
-  const depth = PREMIUM_V2[id];
+for (const id of PREMIUM_V3_IDS) {
+  const depth = PREMIUM_V3[id];
   PREMIUM[id] = {
     tier: 'PREM',
     teaser: teaserFor('这一'),
@@ -82,3 +82,4 @@ export const PREMIUM_IDS = Object.keys(PREMIUM);
 export function premiumOf(id) {
   return PREMIUM[id] || null;
 }
+

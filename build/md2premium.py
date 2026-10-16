@@ -1,7 +1,7 @@
-"""把 content/v2 的 62 篇 + 乾坤新版，转成付费墙需要的 depth HTML。
+﻿"""把 content/v2 的 62 篇 + 乾坤新版，转成付费墙需要的 depth HTML。
 
-输出 content/premium-v2.mjs：
-  export const PREMIUM_V2 = {
+输出 content/premium-v3.mjs：
+  export const PREMIUM_V3 = {
     qian: '<h3>…</h3><p>…</p>',
     kun:  '…',
     zhun: '…',
@@ -14,8 +14,8 @@ md → html 的规则见 md2depth.py，此处复用同一套。
 import re, os, json, io, sys
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-V2 = r'D:\zhouyi-site\content\v2'
-OUT = r'D:\zhouyi-site\content\premium-v2.mjs'
+V2 = r'D:\zhouyi-site\content\v3'
+OUT = r'D:\zhouyi-site\content\premium-v3.mjs'
 MANIFEST = r'D:\zhouyi-site\data\manifest.json'
 
 man = json.load(open(MANIFEST, encoding='utf-8'))
@@ -88,16 +88,7 @@ def convert(md):
 data = {}
 stats = []
 
-# --- 乾坤：用新版 ---
-for hid, path in [('qian', r'D:\zhouyi-site\content\新版-乾卦.md'),
-                  ('kun', r'D:\zhouyi-site\content\新版-坤卦.md')]:
-    md = open(path, encoding='utf-8').read()
-    html = convert(md)
-    data[hid] = html
-    stats.append((1 if hid == 'qian' else 2, '乾' if hid == 'qian' else '坤',
-                  len(re.findall(r'[\u4e00-\u9fff]', html))))
-
-# --- 3-64 卦：用 v2 ---
+# --- 全部 64 卦统一从 v3 取（乾坤也已在 v3 里：01-乾.md / 02-坤.md）---
 missing = []
 for name in sorted(os.listdir(V2)):
     m = re.match(r'^(\d+)-(.+)\.md$', name)
@@ -119,7 +110,7 @@ parts = [
     ' * 本文件由 build/md2premium.py 从 content/ 的 markdown 生成，请勿手改。',
     ' * 这些内容【不会】进静态产物 —— build.mjs 只读它做校验，不写进 articles/。',
     ' */',
-    'export const PREMIUM_V2 = {',
+    'export const PREMIUM_V3 = {',
 ]
 for k, v in data.items():
     esc = v.replace('\\', '\\\\').replace('`', '\\`').replace('${', '\\${')
@@ -128,7 +119,7 @@ for k, v in data.items():
     parts.append('  `,')
 parts.append('};')
 parts.append('')
-parts.append('export const PREMIUM_V2_IDS = ' + json.dumps(list(data.keys()), ensure_ascii=False) + ';')
+parts.append('export const PREMIUM_V3_IDS = ' + json.dumps(list(data.keys()), ensure_ascii=False) + ';')
 parts.append('')
 
 open(OUT, 'w', encoding='utf-8').write('\n'.join(parts))
@@ -147,3 +138,5 @@ if missing:
     print('跳过：')
     for x in missing:
         print('  ' + x)
+
+
