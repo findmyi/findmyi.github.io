@@ -94,14 +94,20 @@
 
     /**
      * 核心 API：用授权码解锁。
+     *
+     * 如果加载了 license-server.js（一码一机），走服务端；
+     * 否则退回本地校验。服务端不可用时自动降级 —— 绝不锁死已购用户。
+     *
      * @param {string} key 用户输入的授权码
-     * @returns {{ok:boolean, tier?:string, label?:string, reason?:string, covers?:boolean}}
+     * @returns {Promise<{ok:boolean, tier?:string, label?:string, reason?:string, covers?:boolean}>}
      */
-    unlock(key) {
+    async unlock(key) {
       if (!this.ready) {
         return { ok: false, reason: '授权模块未加载，请刷新页面后重试。' };
       }
-      const res = window.License.activate(key);
+      const res = window.LicenseServer
+        ? await window.LicenseServer.activate(key)
+        : window.License.activate(key);
       if (!res.ok) return res;
       // 告诉调用方这个码是否覆盖当前文章（用于「已解锁但不是这篇」的提示）
       res.covers = this.isUnlocked(currentId);
@@ -714,18 +720,51 @@
     }).join('');
   }
 
+  /**
+   * 渲染定价档位卡。
+   * 写法原则：不写功能，写「他会拿到什么」；并明确列出「不包含什么」——
+   * 后者反而增加信任（用户知道你不会糊弄他）。
+   */
+  function tiersHtml() {
+    if (typeof window.Payment === 'undefined') return '';
+    const tiers = window.Payment.tiers();
+    if (!tiers.length) return '';
+
+    const cards = tiers.map((t) => {
+      const items = (t.items || []).map(([title, desc]) =>
+        '<li><b>' + esc(title) + '</b>' + (desc ? '<span>' + esc(desc) + '</span>' : '') + '</li>'
+      ).join('');
+
+      const ex = (t.excludes && t.excludes.length)
+        ? '<div class="pw-tier-ex">' +
+            '<div class="pw-tier-ex-tt">不包含</div><ul>' +
+            t.excludes.map((x) => '<li>' + esc(x) + '</li>').join('') +
+          '</ul></div>'
+        : '';
+
+      return [
+        '<div class="pw-tier' + (t.featured ? ' is-featured' : '') + '">',
+        t.featured ? '  <div class="pw-tier-flag">最常选</div>' : '',
+        '  <div class="pw-tier-name">' + esc(t.name) + '</div>',
+        '  <div class="pw-tier-price"><small>￥</small>' + esc(String(t.price)) + '</div>',
+        '  <div class="pw-tier-tag">' + esc(t.tagline || '') + '</div>',
+        '  <ul class="pw-tier-items">' + items + '</ul>',
+        '  ' + ex,
+        t.note ? '  <div class="pw-tier-note">' + esc(t.note) + '</div>' : '',
+        '</div>',
+      ].join('\n');
+    }).join('\n');
+
+    return '<div class="pw-sec-tt">怎么买 · 两档，都是终身买断</div>' +
+           '<div class="pw-tiers">' + cards + '</div>';
+  }
+
   /** 构建付费卡 DOM（未解锁时） */
   function paywallHtml(id) {
     const card = premiumCard(id);
     const tier = (card && card.tier) || 'PREM';
-    const price = (typeof window.Payment !== 'undefined') ? window.Payment.priceText() : '';
     const pcfg = (typeof window.Payment !== 'undefined') ? window.Payment.config : {};
     const sample = card && card.sample;
-
-    const includes = (card && card.includes && card.includes.length)
-      ? '<div class="pw-sec-tt">你会得到什么</div>' +
-        '<ul class="pw-list">' + card.includes.map((li) => '<li>' + li + '</li>').join('') + '</ul>'
-      : '';
 
     const sampleHtml = sample
       ? '<div class="pw-sample">' +
@@ -736,15 +775,8 @@
         '</div>'
       : '';
 
-    const priceHtml = price
-      ? '<div class="pw-price-row">' +
-          '<div class="pw-price"><small>￥</small>' +
-            esc(String(price).replace(/^[¥￥]/, '')) + '</div>' +
-          '<div class="pw-price-meta">' +
-            '<div class="pw-price-note">' + esc(pcfg.priceNote || '') + '</div>' +
-            (pcfg.priceAnchor ? '<div class="pw-price-anchor">' + esc(pcfg.priceAnchor) + '</div>' : '') +
-          '</div>' +
-        '</div>'
+    const anchorHtml = pcfg.priceAnchor
+      ? '<div class="pw-price-anchor">' + esc(pcfg.priceAnchor) + '</div>'
       : '';
 
     return [
@@ -756,11 +788,11 @@
       '      免费部分回答「这一卦说了什么」；付费章节回答「我现在该怎么做」。',
       '      逐爻拆解你所处的阶段、史书中的真实印证，以及一套可自测的判断方法。',
       '    </p>',
+      anchorHtml,
       '  </div>',
       '  <div class="pw-body">',
-      '    ' + includes,
+      '    ' + tiersHtml(),
       '    ' + sampleHtml,
-      '    ' + priceHtml,
       '    <div class="pw-buy">' + buyButtonsHtml() + '</div>',
       '    <div class="pw-unlock" id="pwUnlock">',
       '      <div class="pw-unlock-tt">已经购买了？输入授权码解锁</div>',
@@ -803,19 +835,32 @@
    * 所以静态版本这里只能展示样例 + 说明。接入 Cloudflare Worker
    * （见 assets/paywall-worker.example.js）后，此处改为 fetch 正文即可。
    */
+  /**
+   * 已解锁状态。
+   *
+   * 付费正文【不在】静态产物里 —— 它存在服务端（Cloudflare Worker + KV），
+   * 验码之后才下发。所以这里先渲染骨架，再异步把正文取回来填进去。
+   *
+   * 未配置 workerUrl 时（纯静态部署）显示提示，不会静默失败。
+   */
   function unlockedHtml(id) {
     const card = premiumCard(id);
     const sample = card && card.sample;
+    const hasWorker = typeof window.Payment !== 'undefined' && !!window.Payment.workerUrl();
     return [
       '<section class="pw-gated-body" id="s-premium-full">',
       '  <h2 id="p-full">深度解读</h2>',
+      '  <div id="pwContent" data-article="' + esc(id) + '">',
+      hasWorker
+        ? '    <p class="load-state">正在取回正文…</p>'
+        : '    <p class="load-state">付费正文由服务端下发，本站当前未配置服务端地址' +
+          '（assets/payment.js 的 workerUrl 为空）。</p>',
+      '  </div>',
       sample ? '  <div class="pw-sample">' +
         '<div class="pw-sample-tt">样 例 · 章节节选</div>' +
         '<p class="pw-sample-quote">' + esc(sample.quote) + '</p>' +
         '<p class="pw-sample-body">' + esc(sample.body) + '</p>' +
         '</div>' : '',
-      '  <p class="load-state">完整章节由服务端按授权码下发（当前部署为纯静态版本，尚未接入）。',
-      '     你已解锁本站，接入后无需再次付费。</p>',
       '</section>',
       '<div class="pw-unlocked-bar">',
       '  <span class="pw-ub-mark">✓</span>',
@@ -823,6 +868,64 @@
       '  <button type="button" id="pwReset">在本机清除授权</button>',
       '</div>',
     ].join('\n');
+  }
+
+  /**
+   * 从服务端取回付费正文并渲染。
+   * 失败时给出明确的下一步（而不是空白）。
+   */
+  async function loadPremiumContent(id) {
+    const host = document.getElementById('pwContent');
+    if (!host || host.dataset.loaded === '1') return;
+
+    const url = (typeof window.Payment !== 'undefined') ? window.Payment.workerUrl() : '';
+    const key = (window.License.all() || [])[0] || '';
+
+    const fail = (msg) => {
+      host.innerHTML = '<p class="load-state is-error">' + esc(msg) + '</p>';
+    };
+
+    if (!url) return;                       // 未配置服务端，骨架里已有提示
+    if (!key) return fail('没有找到本机的授权码，请重新输入一次。');
+
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 12000);
+
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'unlock',
+          key,
+          device: window.LicenseServer ? window.LicenseServer.deviceId() : '',
+          ids: [id],
+        }),
+        signal: ctl.signal,
+      });
+      clearTimeout(timer);
+
+      if (!r.ok) return fail('服务端返回 ' + r.status + '，请稍后重试。');
+      const data = await r.json();
+
+      if (!data.ok) {
+        const MSG = {
+          used: '这个授权码已绑定到另一台设备。如需换机请联系我们。',
+          revoked: '这个授权码已停用。',
+          notfound: '服务端查不到这个授权码。',
+          invalid: '授权码无效。',
+        };
+        return fail(MSG[data.reason] || '取回正文失败：' + (data.reason || '未知原因'));
+      }
+
+      const html = (data.contents || {})[id];
+      if (!html) return fail('当前授权等级不包含这一篇。');
+
+      host.innerHTML = html;
+      host.dataset.loaded = '1';
+    } catch {
+      fail('取回正文超时或网络不通。检查网络后刷新页面即可，无需重新付费。');
+    }
   }
 
   /**
@@ -855,6 +958,8 @@
           if (art) showArticle(art);
         };
       }
+      // 付费正文不在静态产物里 —— 异步从服务端取
+      loadPremiumContent(a.id);
       return;
     }
 
@@ -878,9 +983,22 @@
       if (msg) { msg.textContent = ''; msg.className = 'pw-msg'; }
     });
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const res = Entitlement.unlock(input.value);
+
+      // 一码一机模式下要打服务端，所以是异步的；期间禁用按钮防重复提交
+      const btn = form.querySelector('.pw-submit');
+      if (btn) { btn.disabled = true; btn.dataset.text = btn.textContent; btn.textContent = '校验中…'; }
+      if (msg) { msg.className = 'pw-msg'; msg.textContent = ''; }
+
+      let res;
+      try {
+        res = await Entitlement.unlock(input.value);
+      } catch {
+        res = { ok: false, reason: '校验服务暂时不可用，请稍后重试。' };
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = btn.dataset.text || '解锁'; }
+      }
 
       if (!res.ok) {
         input.classList.add('is-error');

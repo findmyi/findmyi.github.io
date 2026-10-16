@@ -1,4 +1,4 @@
-# 依赖与构建产物
+﻿# 依赖与构建产物
 node_modules/
 *.log
 
@@ -27,3 +27,7 @@ desktop.ini
 _probe*.html
 *.tmp
 *.bak
+
+# 付费正文的 KV 导入文件 —— 含全部正文，绝不进 git
+worker/content-kv.json
+

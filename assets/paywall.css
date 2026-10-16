@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    周易六十四卦 · 付费墙样式
    --------------------------------------------------------------------------
    设计原则（按调研结论）：
@@ -330,4 +330,202 @@
 /* ---------- 打印：不打印付费卡 ---------- */
 @media print {
   .paywall, .pw-teaser, .pw-unlocked-bar { display: none !important; }
+}
+
+/* ==========================================================================
+   定价档位卡（两档买断）
+   ========================================================================== */
+.pw-tiers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+  gap: 14px;
+  margin: 0 0 26px;
+}
+
+.pw-tier {
+  position: relative;
+  border: 1px solid var(--line-2, #d9d2c6);
+  border-radius: 10px;
+  padding: 20px 20px 18px;
+  background: var(--card, #fffdf9);
+  transition: border-color .2s, box-shadow .2s;
+}
+.pw-tier:hover {
+  border-color: color-mix(in srgb, var(--cinnabar, #a8322a) 42%, transparent);
+}
+.pw-tier.is-featured {
+  border-color: var(--cinnabar, #a8322a);
+  box-shadow: 0 10px 30px -18px rgba(168,50,42,.42);
+}
+
+.pw-tier-flag {
+  position: absolute; top: -10px; left: 20px;
+  background: var(--cinnabar, #a8322a); color: #fff;
+  font-size: 11px; letter-spacing: .1em;
+  padding: 3px 10px; border-radius: 999px;
+  font-weight: 700;
+}
+
+.pw-tier-name {
+  font-family: var(--serif);
+  font-size: 16px; font-weight: 700;
+  color: var(--ink, #1c1a17);
+  margin-bottom: 8px;
+}
+
+.pw-tier-price {
+  font-family: var(--serif);
+  font-size: 34px; font-weight: 700; line-height: 1;
+  color: var(--cinnabar, #a8322a);
+  margin-bottom: 6px;
+}
+.pw-tier-price small { font-size: 17px; margin-right: 2px; }
+
+.pw-tier-tag {
+  font-family: var(--serif);
+  font-size: 13px; line-height: 1.7;
+  color: var(--ink-3, #6b645a);
+  margin-bottom: 14px;
+}
+
+.pw-tier-items {
+  list-style: none; margin: 0 0 14px; padding: 0;
+  border-top: 1px solid var(--line, #e8e2d8);
+}
+.pw-tier-items li {
+  display: block;
+  padding: 10px 0 10px 20px;
+  border-bottom: 1px dashed var(--line, #e8e2d8);
+  position: relative;
+  font-family: var(--serif);
+  font-size: 13.5px; line-height: 1.7;
+  color: var(--ink-2, #44403a);
+}
+.pw-tier-items li::before {
+  content: '✓';
+  position: absolute; left: 0; top: 10px;
+  color: var(--cinnabar, #a8322a);
+  font-size: 12px; font-weight: 700;
+}
+.pw-tier-items li b {
+  display: block; font-weight: 700;
+  color: var(--ink, #1c1a17);
+  margin-bottom: 2px;
+}
+.pw-tier-items li span {
+  display: block;
+  font-size: 12.5px; line-height: 1.65;
+  color: var(--ink-3, #6b645a);
+}
+
+/* 「不包含」—— 主动划界，反而增信任 */
+.pw-tier-ex {
+  margin: 0 0 12px;
+  padding: 11px 13px;
+  background: color-mix(in srgb, var(--ink, #1c1a17) 4%, transparent);
+  border-radius: 7px;
+}
+.pw-tier-ex-tt {
+  font-size: 11px; letter-spacing: .14em;
+  color: var(--ink-4, #9a938a);
+  margin-bottom: 6px;
+}
+.pw-tier-ex ul { list-style: none; margin: 0; padding: 0; }
+.pw-tier-ex li {
+  position: relative;
+  padding-left: 16px;
+  font-family: var(--serif);
+  font-size: 12.5px; line-height: 1.7;
+  color: var(--ink-3, #6b645a);
+}
+.pw-tier-ex li::before {
+  content: '×';
+  position: absolute; left: 2px;
+  color: var(--ink-4, #9a938a);
+  font-weight: 700;
+}
+
+.pw-tier-note {
+  font-size: 11.5px; letter-spacing: .04em;
+  color: var(--cinnabar, #a8322a);
+  font-weight: 700;
+}
+
+.pw-price-anchor {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--ink-4, #9a938a);
+  font-family: var(--serif);
+}
+
+@media (max-width: 640px) {
+  .pw-tier-price { font-size: 28px; }
+}
+
+/* ==========================================================================
+   付费正文加载状态（正文由服务端下发，有等待期）
+   ========================================================================== */
+.load-state {
+  font-family: var(--serif);
+  font-size: 14px; line-height: 1.9;
+  color: var(--ink-3, #6b645a);
+  padding: 18px 20px;
+  background: color-mix(in srgb, var(--paper-2, #f3efe7) 55%, transparent);
+  border-radius: 8px;
+  border-left: 3px solid var(--line-2, #d9d2c6);
+}
+.load-state.is-error {
+  color: var(--cinnabar, #a8322a);
+  border-left-color: var(--cinnabar, #a8322a);
+  background: color-mix(in srgb, var(--cinnabar, #a8322a) 5%, transparent);
+}
+
+/* 正文取回后的排版 */
+#pwContent h3 {
+  font-family: var(--serif);
+  font-size: 19px; font-weight: 700;
+  margin: 34px 0 12px;
+  padding-left: 12px;
+  border-left: 3px solid var(--cinnabar, #a8322a);
+  line-height: 1.5;
+}
+#pwContent h3:first-child { margin-top: 8px; }
+
+#pwContent p {
+  font-family: var(--serif);
+  font-size: 15.5px; line-height: 2.05;
+  color: var(--ink-2, #44403a);
+  margin: 0 0 15px;
+}
+#pwContent strong { color: var(--ink, #1c1a17); font-weight: 700; }
+
+#pwContent blockquote,
+.pw-quote {
+  margin: 0 0 18px;
+  padding: 13px 17px;
+  background: color-mix(in srgb, var(--paper-2, #f3efe7) 60%, transparent);
+  border-left: 3px solid var(--cinnabar, #a8322a);
+  border-radius: 0 7px 7px 0;
+  font-family: var(--serif);
+  font-size: 14.5px; line-height: 1.9;
+  color: var(--ink, #1c1a17);
+}
+
+#pwContent table,
+.pw-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 18px;
+  font-family: var(--serif);
+  font-size: 13.5px;
+}
+.pw-table th, .pw-table td {
+  border: 1px solid var(--line, #e8e2d8);
+  padding: 9px 12px;
+  text-align: left;
+  line-height: 1.7;
+}
+.pw-table th {
+  background: color-mix(in srgb, var(--paper-2, #f3efe7) 70%, transparent);
+  font-weight: 700;
 }
