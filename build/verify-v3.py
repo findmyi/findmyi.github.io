@@ -1,4 +1,4 @@
-"""v3 全量验收。
+﻿"""v3 全量验收。
 
 对照 content/v3/ 的每篇，检查：
   1. 字数：全篇 4000-6000，每爻 600-900
@@ -106,8 +106,9 @@ print()
 bad = 0
 for r in sorted(rows, key=lambda x: x['n']):
     f = []
-    if not (4000 <= r['han'] <= 6200):
-        f.append('总字数' + str(r['han']))
+    # 字数只查下限 —— 上限不硬卡（用户 2026-10-16 要求「不要卡死，要留个区间」）
+    if r['han'] < 4000:
+        f.append('总字数不足' + str(r['han']))
     if r['yao'] != 6:
         f.append('爻节' + str(r['yao']))
     if r['q'] != 6:
@@ -141,3 +142,4 @@ print('禁用词:')
 for w in BAN:
     lst = ban_hit[w]
     print('  ' + w.ljust(6) + str(len(lst)).rjust(3) + ' 篇  ' + (', '.join(lst[:6]) if lst else ''))
+
