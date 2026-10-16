@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 构建脚本：合并 64 卦数据 → 生成 manifest.json / articles/*.html / search.json
  * 用法：node build/build.mjs
  */
@@ -413,6 +413,8 @@ const manifest = {
       cards: Object.fromEntries(
         Object.entries(PREMIUM).map(([id, p]) => [id, {
           tier: p.tier,
+          // teaser 是给付费卡用的引子（有意公开，不含正文）
+          teaser: p.teaser || '',
           includes: p.includes || [],
           sample: p.sample || null,
         }])
