@@ -1,11 +1,32 @@
-"""v3 13-24 卦自查：字数 / 爻辞逐字 / 象传逐字 / 禁用词 / 设问密度。"""
-import io, sys, json, re, argparse
+"""v3 13-24 卦自查：字数 / 爻辞逐字 / 象传逐字 / 禁用词 / 设问密度。
+数据源：hex-01-16.mjs + hex-17-32.mjs（不依赖临时 json）。"""
+import io, sys, re, argparse
 from pathlib import Path
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-DATA = json.load(open(r'D:\zhouyi-site\build\_hex13-24.json', encoding='utf-8'))
+BUILD = Path(r'D:\zhouyi-site\build')
 V3 = Path(r'D:\zhouyi-site\content\v3')
+
+# 直接从 mjs 重新抽取 13-24
+txt = ''
+for f in ['hex-01-16.mjs', 'hex-17-32.mjs']:
+    txt += (BUILD / f).read_text(encoding='utf-8') + '\n'
+
+DATA = {}
+for b in re.split(r'\n  \{\n', txt):
+    m = re.match(r"\s*n:\s*(\d+),\s*id:\s*'([^']+)',\s*name:\s*'([^']+)'", b)
+    if not m:
+        continue
+    n = int(m.group(1))
+    if not (13 <= n <= 24):
+        continue
+
+    def arr(key):
+        mm = re.search(key + r':\s*\[(.*?)\n    \]', b, re.S)
+        return re.findall(r"'([^']*)'", mm.group(1)) if mm else []
+
+    DATA[str(n)] = {'name': m.group(3), 'yao': arr('yao'), 'yaoXiang': arr('yaoXiang')}
 
 BAD_WORDS = ['待核', '声明', '注释', '各家观点', '分歧', '参考文献',
              '本节', '上文', '下文', '我们', '之所以', '咱', '兄弟们']
@@ -44,7 +65,7 @@ for n in nums:
             problems.append('禁用词 ' + b + ' x' + str(c))
     for m in re.finditer('说明', t):
         lo = max(0, m.start() - 12)
-        problems.append('「说明」出现: ...' + t[lo:m.start() + 14] + '...')
+        problems.append('「说明」: ...' + t[lo:m.start() + 14] + '...')
 
     tl = t.count('**铁律：')
     ex = t.count('**什么情况')
