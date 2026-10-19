@@ -1126,3 +1126,27 @@ img { max-width: 100%; display: block; }
   .situ-h1 { font-size:23px; }
   .situ-item { padding:17px 16px 15px; }
 }
+
+/* 六阶段入口 */
+.situ-grid-6 { grid-template-columns:repeat(3, minmax(0,1fr)); }
+.situ-card { position:relative; }
+.situ-card-no {
+  font-family:var(--serif); font-size:12px; letter-spacing:.1em;
+  color:var(--cinnabar); margin-bottom:8px; opacity:.8;
+}
+.situ-card-ask {
+  font-family:var(--serif); font-size:13px; line-height:1.7;
+  color:var(--ink-2); margin:0 0 8px;
+  padding-left:9px; border-left:2px solid var(--line-2);
+}
+.situ-stage-ask {
+  font-family:var(--serif); font-size:16px; line-height:1.8;
+  color:var(--cinnabar); margin:-4px 0 16px;
+  padding-left:12px; border-left:3px solid var(--cinnabar);
+}
+@media (max-width:820px) {
+  .situ-grid-6 { grid-template-columns:repeat(2, minmax(0,1fr)); }
+}
+@media (max-width:520px) {
+  .situ-grid-6 { grid-template-columns:1fr; }
+}

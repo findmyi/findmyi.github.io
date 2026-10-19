@@ -200,17 +200,15 @@
     }
 
     // 阅读路径（贴近前置篇的真实入口）
-    /* 首页入口：前 8 个是「你现在遇到什么事」，最后一个给完全没接触过的人。
-       处境类跳到 #/s/<code>，内容来自 data/situ.json 的 384 条。 */
+    /* 首页入口：前 6 个是「你在哪个阶段」，最后给完全没接触过的人。
+       阶段 = 六爻，是《周易》本来的结构，不是猜出来的分类。 */
     const paths = [
-      { glyph: '①', tt: '想上去，上不去', sub: '位置低、有本事、没机会', to: '#/s/S1' },
-      { glyph: '②', tt: '刚被看见，站不稳', sub: '刚出头，根基还浅，有人盯着', to: '#/s/S2' },
-      { glyph: '③', tt: '卡在中间', sub: '承上启下，两头受气，最容易背锅', to: '#/s/S3' },
-      { glyph: '④', tt: '到了高位，怕掉', sub: '已经成了，反而睡不好', to: '#/s/S4' },
-      { glyph: '⑤', tt: '被打压，动不了', sub: '被排挤、被算计、被架空', to: '#/s/S5' },
-      { glyph: '⑥', tt: '面临选择，不敢动', sub: '要不要做、选哪个，站在关口上', to: '#/s/S6' },
-      { glyph: '⑦', tt: '已经崩了，要重来', sub: '失败了，损失已成，得从头收拾', to: '#/s/S7' },
-      { glyph: '⑧', tt: '在等，什么也做不了', sub: '时机不到，只能熬着', to: '#/s/S8' },
+      { glyph: '①', tt: '还没起来', sub: '你说的话没人听，做的事没人跟', to: '#/s/P1' },
+      { glyph: '②', tt: '刚被看见', sub: '有人开始注意你，但还不稳', to: '#/s/P2' },
+      { glyph: '③', tt: '最难的中段', sub: '上面要交代，下面要带，两头受气', to: '#/s/P3' },
+      { glyph: '④', tt: '在关口上', sub: '离核心很近了，要不要迈那一步', to: '#/s/P4' },
+      { glyph: '⑤', tt: '到顶了', sub: '位置最高，责任最重，反而睡不好', to: '#/s/P5' },
+      { glyph: '⑥', tt: '该收了', sub: '已经过顶，感觉在往下走', to: '#/s/P6' },
       { glyph: '◆', tt: '我完全没接触过《周易》', sub: '从卷首三篇开始，约 11 分钟', to: '#/p/preface' },
     ];
     $('#readingPaths').innerHTML = paths.map((p) => `
@@ -1664,42 +1662,43 @@
     return SITU;
   }
 
-  function situTagOf(code) {
-    const s = SITU && SITU.tags ? SITU.tags.find((t) => t.code === code) : null;
+  function situStageOf(code) {
+    const s = SITU && SITU.stages ? SITU.stages.find((t) => t.code === code) : null;
     return s || null;
   }
 
   function situItemsOf(code) {
     const items = (SITU && SITU.items) || [];
-    return items.filter((it) => it.tag === code || (it.subs || []).indexOf(code) !== -1);
+    return items.filter((it) => it.stage === code);
   }
 
-  /** #/s —— 八个入口 */
+  /** #/s —— 六个阶段入口 */
   async function showSituIndex() {
     const s = await loadSitu();
 
-    const cards = (s.tags || []).map((t) => {
+    const cards = (s.stages || []).map((t) => {
       const n = t.count || 0;
-      const dim = n === 0 ? ' is-dim' : '';
-      return '<a class="situ-card' + dim + '" href="#/s/' + esc(t.code) + '">' +
+      return '<a class="situ-card" href="#/s/' + esc(t.code) + '">' +
+        '<div class="situ-card-no">' + esc(t.code.replace('P', '')) + '</div>' +
         '<div class="situ-card-tt">' + esc(t.name) + '</div>' +
+        '<div class="situ-card-ask">「' + esc(t.ask) + '」</div>' +
         '<div class="situ-card-sub">' + esc(t.desc) + '</div>' +
-        '<div class="situ-card-n">' + (n ? n + ' 条' : '整理中') + '</div>' +
+        '<div class="situ-card-n">' + n + ' 条处境</div>' +
       '</a>';
     }).join('');
 
     const html = [
       '<section class="situ-view">',
       '  <div class="situ-eyebrow">SITUATIONS · 按处境查找</div>',
-      '  <h1 class="situ-h1">你现在遇到什么事？</h1>',
+      '  <h1 class="situ-h1">你现在在哪个阶段？</h1>',
       '  <p class="situ-lede">' +
-      '    不用先读懂卦。说出你现在的处境，直接看和你对应的那一爻——' +
-      '    它说什么、该怎么做、什么情况下这条不成立。' +
+      '    不用先读懂卦。六十四卦的每一爻都在讲一个具体的处境——' +
+      '    往下选一个最像你现在的，看你该做什么、什么情况下那条不成立。' +
       '  </p>',
-      '  <div class="situ-grid">' + cards + '</div>',
+      '  <div class="situ-grid situ-grid-6">' + cards + '</div>',
       '  <div class="situ-foot">',
       '    <p>' + (s.total || 0) + ' 条处境，来自六十四卦的三百八十四爻。' +
-      '      每一条都给出「你现在在哪」「该做什么」「什么时候不适用」三段。</p>',
+      '      六个阶段是《周易》本来的结构：初爻到上爻，就是一件事从起步到收尾的全程。</p>',
       '    <p><a href="#/toc">← 或者按卦序浏览</a></p>',
       '  </div>',
       '</section>',
@@ -1708,10 +1707,10 @@
     renderStandalone(html);
   }
 
-  /** #/s/S1 —— 某一类处境下的条目 */
+  /** #/s/P1 —— 某个阶段下的条目 */
   async function showSituTag(code) {
     const s = await loadSitu();
-    const tag = situTagOf(code);
+    const tag = situStageOf(code);
     if (!tag) { location.hash = '#/s'; return; }
 
     const items = situItemsOf(code);
@@ -1750,13 +1749,14 @@
 
     const html = [
       '<section class="situ-view">',
-      '  <div class="situ-eyebrow"><a href="#/s">← 全部处境</a></div>',
+      '  <div class="situ-eyebrow"><a href="#/s">← 全部阶段</a></div>',
       '  <h1 class="situ-h1">' + esc(tag.name) + '</h1>',
+      '  <p class="situ-stage-ask">「' + esc(tag.ask) + '」</p>',
       '  <p class="situ-lede">' + esc(tag.desc) + '　共 ' + items.length + ' 条。</p>',
       items.length
         ? '<div class="situ-list">' + list + '</div>'
-        : '<p class="situ-lede">这一类还在整理。</p>',
-      '  <div class="situ-foot"><p><a href="#/s">← 换个处境</a> · <a href="#/toc">按卦序浏览</a></p></div>',
+        : '<p class="situ-lede">这一阶段暂无条目。</p>',
+      '  <div class="situ-foot"><p><a href="#/s">← 换个阶段</a> · <a href="#/toc">按卦序浏览</a></p></div>',
       '</section>',
     ].join('\n');
 
