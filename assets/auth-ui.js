@@ -109,6 +109,18 @@
     render(tab || 'login');
   }
 
+  /**
+   * 往同一个弹层里塞自定义内容（账号菜单等用）。
+   * 不传 html 就打开空壳，由调用方自己填 #authBody。
+   */
+  function panel(html) {
+    const m = makeModal();
+    const body = document.getElementById('authBody');
+    if (html != null && body) body.innerHTML = html;
+    m.hidden = false;
+    requestAnimationFrame(() => m.classList.add('on'));
+  }
+
   function close() {
     const m = document.getElementById('authModal');
     if (m) { m.hidden = true; m.classList.remove('on'); }
@@ -299,7 +311,7 @@
 
   global.AuthUI = {
     session, email, isLoggedIn, me, hasTier, anyTier,
-    open, close, logout, handleCallback, call,
+    open, panel, close, logout, handleCallback, call,
     get cached() { return _me; },
   };
 })(window);

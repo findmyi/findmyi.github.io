@@ -1824,31 +1824,34 @@
   }
 
   function openAccountMenu() {
-    const cached = (window.AuthUI && window.AuthUI.cached) || {};
-    const email = (window.AuthUI && window.AuthUI.email()) || '';
-    const tiers = (cached.tiers || []);
+    if (!window.AuthUI) return;
+
+    const cached = window.AuthUI.cached || {};
+    const email = window.AuthUI.email() || '';
+    const tiers = cached.tiers || [];
     const tierText = tiers.length
       ? tiers.map((t) => t === 'FULL' ? '全站通行' : t === 'PREM' ? '六十四卦' : t).join(' · ')
       : '还没购买';
 
-    const m = document.getElementById('authModal');
-    if (!m) return;
-    const body = document.getElementById('authBody');
-    if (!body) return;
-    body.innerHTML = [
+    window.AuthUI.panel([
       '<div class="auth-tt">我的账号</div>',
       '<p class="auth-sub">' + esc(email) + '<br>已购：<b>' + esc(tierText) + '</b></p>',
-      tiers.length ? '' : '<p class="auth-sub">买过之后，任何设备登录都能看。</p>',
+      tiers.length
+        ? '<p class="auth-sub" style="font-size:12.5px">换设备或换浏览器，用这个邮箱登录就能继续看。</p>'
+        : '<p class="auth-sub" style="font-size:12.5px">买过之后，任何设备登录都能看。</p>',
       '<button class="auth-btn ghost" id="acctLogout">退出登录</button>',
-    ].join('');
-    m.hidden = false;
-    requestAnimationFrame(() => m.classList.add('on'));
+    ].join(''));
 
     const lo = document.getElementById('acctLogout');
-    if (lo) lo.onclick = async () => {
-      await window.AuthUI.logout();
-      window.AuthUI.close();
-    };
+    if (lo) {
+      lo.onclick = () => {
+        // 先关弹层并清本地状态，再异步通知服务端 ——
+        // 不等网络，用户点完立刻就该看到已退出。
+        window.AuthUI.close();
+        window.AuthUI.logout().catch(() => {});
+        toast('已退出登录');
+      };
+    }
   }
 
   /* ---------- 启动 ---------- */
