@@ -701,8 +701,7 @@
     if (typeof window.Payment === 'undefined') return '';
     const channels = window.Payment.channels();
     if (!channels.length) {
-      return '<div class="pw-msg">购买渠道尚未开放。若你已购买，可直接在下方输入授权码；' +
-        '否则请稍后再来。</div>';
+      return '<div class="pw-msg">购买渠道尚未开放，请稍后再来，或直接联系我们。</div>';
     }
     return channels.map((c, i) => {
       const primary = i === 0 && !c.isManual;
@@ -1099,20 +1098,8 @@
       '    ' + tiersHtml(),
       '    ' + sampleHtml,
       '    <div class="pw-buy">' + buyButtonsHtml() + '</div>',
-      '    <div class="pw-unlock" id="pwUnlock">',
-      '      <div class="pw-unlock-tt">已经购买了？输入授权码解锁</div>',
-      '      <div class="pw-unlock-note">',
-      '        授权码形如 <code>ZY-PREM-XXXX-XXXX-X</code>，在你下单后由平台自动发送。',
-      '        输入一次即可，之后本机浏览器会记住。',
-      '      </div>',
-      '      <form class="pw-unlock-row" id="pwForm" autocomplete="off">',
-      '        <input class="pw-input" id="pwInput" type="text"',
-      '               placeholder="ZY-PREM-XXXX-XXXX-X" aria-label="授权码"',
-      '               spellcheck="false" autocapitalize="characters">',
-      '        <button class="pw-submit" type="submit">解锁</button>',
-      '      </form>',
-      '      <div class="pw-msg" id="pwMsg" role="status"></div>',
-      '    </div>',
+      // 授权码入口已移除：现在用账号（Google 登录）识别买家，
+      // 换设备登录即可恢复，不需要输码。
       '    <div class="pw-trust">',
       '      <div class="pw-trust-grid">',
       '        <div class="pw-trust-item is-yes">',
@@ -1194,7 +1181,7 @@
     if (!url) return;                       // 未配置服务端，骨架里已有提示
     // 登录了就可以取（不依赖本机有没有码）；没登录才需要码
     if (!sess && !key) {
-      return fail('请先登录，或输入你购买时收到的授权码。');
+      return fail('请先登录后再阅读。登录一次，90 天内不用重复登录。');
     }
 
     try {
@@ -1220,12 +1207,12 @@
 
       if (!data.ok) {
         const MSG = {
-          used: '这个授权码已绑定到另一台设备。请改用登录方式，或联系我们换机。',
-          revoked: '这个授权码已停用。',
-          notfound: '服务端查不到这个授权码。',
-          invalid: '授权码无效。',
           'not-purchased': '这个账号还没购买。购买后任何设备登录都能看。',
-          'need-login-or-key': '请先登录，或输入授权码。',
+          'need-login-or-key': '请先登录。',
+          used: '这台设备上的旧授权已绑定别处，请改用账号登录。',
+          revoked: '这份授权已停用，如有疑问请联系我们。',
+          notfound: '服务端没有这条记录，请用账号登录。',
+          invalid: '授权无效，请用账号登录。',
         };
         return fail(MSG[data.reason] || '取回正文失败：' + (data.reason || '未知原因'));
       }
