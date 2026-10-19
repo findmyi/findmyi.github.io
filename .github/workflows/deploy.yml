@@ -35,6 +35,9 @@ jobs:
           set -e
           mkdir -p _site
           cp -r index.html assets articles data _site/
+          # 法务页面（Google OAuth 发布需要隐私政策与服务条款链接）
+          [ -f privacy.html ] && cp privacy.html _site/ || true
+          [ -f terms.html ] && cp terms.html _site/ || true
           # 404 与其它静态资源（若存在）
           [ -f 404.html ] && cp 404.html _site/ || true
           [ -f CNAME ] && cp CNAME _site/ || true

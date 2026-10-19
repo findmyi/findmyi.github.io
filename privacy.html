@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>隐私政策 · 周易六十四卦</title>
+<meta name="description" content="周易六十四卦网站的隐私政策：我们收集哪些信息、为什么收集、如何保护、如何删除。">
+<style>
+:root{
+  --paper:#fbf8f1; --paper-2:#f3efe7; --ink:#1c1a17; --ink-2:#44403a;
+  --ink-3:#6b645a; --line:#e8e2d8; --line-2:#d9d2c6; --cinnabar:#a8322a;
+  --serif:"Songti SC","Source Han Serif SC","Noto Serif CJK SC",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:16px; line-height:1.85;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:720px; margin:0 auto; padding:56px 26px 100px}
+.top{display:flex; align-items:center; gap:10px; margin-bottom:44px;
+  font-family:var(--serif); font-size:13px; letter-spacing:.04em}
+.top a{color:var(--ink-3); text-decoration:none}
+.top a:hover{color:var(--cinnabar)}
+.top .sep{color:var(--line-2)}
+h1{font-family:var(--serif); font-size:31px; line-height:1.35; margin:0 0 10px; font-weight:700}
+.meta{font-size:13px; color:var(--ink-3); margin:0 0 40px;
+  padding-bottom:26px; border-bottom:1px solid var(--line)}
+h2{font-family:var(--serif); font-size:20px; margin:44px 0 14px; font-weight:700}
+h3{font-family:var(--serif); font-size:16px; margin:26px 0 8px; font-weight:700}
+p{margin:0 0 16px; color:var(--ink-2)}
+ul{margin:0 0 16px; padding-left:22px; color:var(--ink-2)}
+li{margin-bottom:7px}
+strong{color:var(--ink); font-weight:700}
+a{color:var(--cinnabar)}
+table{width:100%; border-collapse:collapse; margin:0 0 20px; font-size:14.5px}
+th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+th{font-weight:700; color:var(--ink); background:var(--paper-2); font-size:13px}
+td{color:var(--ink-2)}
+.note{
+  background:var(--paper-2); border-left:3px solid var(--cinnabar);
+  padding:16px 20px; border-radius:0 7px 7px 0; margin:0 0 24px;
+  font-size:14.5px; color:var(--ink-2);
+}
+footer{margin-top:60px; padding-top:26px; border-top:1px solid var(--line);
+  font-size:13px; color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <a href="./">周易六十四卦</a>
+  <span class="sep">/</span>
+  <span>隐私政策</span>
+</div>
+
+<h1>隐私政策</h1>
+<p class="meta">最后更新：2026 年 10 月 19 日 · 适用于 huangminzhe321-art.github.io/zhouyi</p>
+
+<p>这个站点卖的是六十四卦的深度解读内容。为了让你买到的东西在任何设备上都能打开，我们需要知道「你是谁」。这份政策说清楚我们收什么、为什么收、怎么保护、怎么删。</p>
+
+<h2>一、我们收集哪些信息</h2>
+
+<table>
+  <tr><th style="width:34%">信息</th><th>什么时候收集</th><th style="width:22%">是否必需</th></tr>
+  <tr><td><strong>邮箱地址</strong></td><td>注册账号时</td><td>必需</td></tr>
+  <tr><td><strong>密码</strong></td><td>注册账号时</td><td>必需</td></tr>
+  <tr><td><strong>购买记录</strong><br><span style="font-size:13px;color:var(--ink-3)">订单号、购买的档位、金额、时间</span></td><td>下单与付款时</td><td>必需</td></tr>
+  <tr><td><strong>Google 账号信息</strong><br><span style="font-size:13px;color:var(--ink-3)">仅邮箱地址与账户标识</span></td><td>你选择「用 Google 登录」时</td><td>可选</td></tr>
+  <tr><td><strong>设备标识</strong><br><span style="font-size:13px;color:var(--ink-3)">由浏览器特征生成的哈希值</span></td><td>使用授权码时</td><td>可选</td></tr>
+  <tr><td><strong>阅读偏好</strong><br><span style="font-size:13px;color:var(--ink-3)">字号、主题等</span></td><td>你调整设置时</td><td>仅存于你本机</td></tr>
+</table>
+
+<h3>我们不收集什么</h3>
+<ul>
+  <li><strong>不收集</strong>你的真实姓名、身份证号、住址、手机号</li>
+  <li><strong>不收集</strong>你的银行卡号或支付密码 —— 支付在第三方支付平台完成，我们不接触这些信息</li>
+  <li><strong>不使用</strong>第三方广告追踪或行为分析脚本</li>
+  <li><strong>不向任何人出售</strong>你的个人信息</li>
+</ul>
+
+<h2>二、密码是怎么存的</h2>
+
+<p>我们<strong>不保存你的明文密码</strong>。你设置的密码会经过 PBKDF2-SHA256 算法、十万次迭代派生出一个哈希值，数据库里只存这个哈希值。</p>
+
+<p>这意味着：即使数据库泄露，攻击者也无法直接得到你的密码；连我们自己也<strong>无法反推出</strong>你的原始密码。如果你忘记密码，只能重置，我们不能「告诉你原密码」。</p>
+
+<h2>三、信息用来做什么</h2>
+
+<ul>
+  <li><strong>验证身份</strong>：确认登录的人是你，防止别人用你的账号看内容</li>
+  <li><strong>恢复购买</strong>：你换手机、换电脑时，登录后能重新拿到已买的章节</li>
+  <li><strong>发送验证码</strong>：注册时确认邮箱真实有效</li>
+  <li><strong>客服处理</strong>：你反馈问题时，我们需要查订单记录来帮你</li>
+</ul>
+
+<p>我们<strong>不会</strong>用你的邮箱给你发营销邮件，除非你明确订阅。</p>
+
+<h2>四、用了哪些第三方服务</h2>
+
+<p>网站本身是静态页面，但登录、支付、内容下发需要以下服务：</p>
+
+<table>
+  <tr><th style="width:30%">服务</th><th>作用</th><th style="width:26%">涉及的信息</th></tr>
+  <tr><td><strong>Cloudflare</strong></td><td>存放账号数据、订单、付费内容；提供接口服务</td><td>邮箱、密码哈希、订单、访问日志</td></tr>
+  <tr><td><strong>GitHub Pages</strong></td><td>托管公开的网页文件</td><td>访问 IP（由 GitHub 记录）</td></tr>
+  <tr><td><strong>Google</strong></td><td>你选择 Google 登录时验证身份</td><td>邮箱、账户标识</td></tr>
+  <tr><td><strong>Resend</strong></td><td>发送验证码邮件</td><td>邮箱地址</td></tr>
+  <tr><td><strong>支付服务商</strong></td><td>处理付款</td><td>由该平台按其隐私政策处理</td></tr>
+</table>
+
+<p>这些服务各有自己的隐私政策，建议你阅读。我们只向它们传递完成上述功能所必需的最少信息。</p>
+
+<h2>五、Cookie 与本地存储</h2>
+
+<p>我们<strong>不使用</strong>广告 Cookie 或跨站追踪 Cookie。</p>
+
+<p>浏览器本地存储（localStorage）里会存两样东西：</p>
+<ul>
+  <li><strong>登录凭证</strong>（一段随机字符串），用于保持登录状态</li>
+  <li><strong>阅读偏好</strong>（字号、主题）</li>
+</ul>
+
+<p>你清除浏览器数据会一并删除这些内容，届时需要重新登录。</p>
+
+<h2>六、数据保存多久</h2>
+
+<ul>
+  <li><strong>账号信息</strong>：保存到你申请注销为止</li>
+  <li><strong>购买记录</strong>：依法需要保留（一般不少于三年），用于处理退款与纠纷</li>
+  <li><strong>登录凭证</strong>：7 天后自动失效</li>
+  <li><strong>邮箱验证码</strong>：10 分钟后自动失效</li>
+  <li><strong>订单记录</strong>：7 天后自动清理未付款订单</li>
+</ul>
+
+<h2>七、你的权利</h2>
+
+<p>关于你的个人信息，你有以下权利，随时可以行使：</p>
+
+<ul>
+  <li><strong>查询</strong>：问我们存了你哪些信息</li>
+  <li><strong>更正</strong>：改正不准确的信息</li>
+  <li><strong>删除</strong>：要求删除账号与相关信息（法律法规要求保留的交易记录除外）</li>
+  <li><strong>导出</strong>：要求提供你的数据副本</li>
+  <li><strong>撤回同意</strong>：随时停止使用本服务</li>
+</ul>
+
+<div class="note">
+行使上述权利，请用你<strong>注册时的邮箱</strong>发信到下方联系邮箱，标题注明「隐私请求」。我们会在 15 个工作日内答复。
+</div>
+
+<h2>八、未成年人</h2>
+
+<p>本服务面向成年人。如果你未满 18 周岁，请在监护人同意并陪同下使用。我们不会主动收集未成年人的个人信息；若发现误收集，会尽快删除。</p>
+
+<h2>九、数据安全</h2>
+
+<p>我们采取的措施：</p>
+<ul>
+  <li>全站 HTTPS 加密传输</li>
+  <li>密码使用 PBKDF2-SHA256 加盐哈希存储</li>
+  <li>付费内容不放在公开页面，验证通过后才下发</li>
+  <li>管理接口使用独立密钥，与用户系统隔离</li>
+</ul>
+
+<p>但请理解：<strong>没有绝对安全的系统</strong>。如果发生数据泄露，我们会在发现后尽快通知受影响的用户。</p>
+
+<h2>十、政策变更</h2>
+
+<p>本政策如有修改，会在本页更新「最后更新」日期。涉及重大变更时，我们会通过站内提示或邮件告知。</p>
+
+<h2>十一、联系我们</h2>
+
+<p>对本政策有疑问，或想行使上述权利：</p>
+
+<p><strong>邮箱：</strong> huangminzhe321@gmail.com</p>
+
+<footer>
+  <a href="./">← 返回首页</a> · <a href="terms.html">服务条款</a>
+</footer>
+
+</div>
+</body>
+</html>
