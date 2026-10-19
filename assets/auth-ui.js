@@ -252,8 +252,13 @@
   function doGoogle() {
     const w = workerUrl();
     if (!w) return msg('服务端未配置', true);
+
     // 记住来源，便于回调后跳回
     try { localStorage.setItem('zhouyi.authReturn', location.hash || '#/'); } catch {}
+
+    // 优先用静默模式：如果浏览器已经登录了 Google，
+    // 就不弹「选择账号」页，直接拿到授权。
+    // 用户没登录或需要确认时，Google 会自动降级到正常授权页。
     location.href = w.replace(/\/$/, '') + '/auth/google';
   }
 
