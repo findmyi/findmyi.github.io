@@ -659,3 +659,146 @@
   color: var(--ink-3, #6b645a);
 }
 .pw-pay-err { color: var(--cinnabar, #a8322a); }
+
+/* ==========================================================================
+   账号：登录 / 注册 / 验证弹层
+   ========================================================================== */
+.auth-modal {
+  position: fixed; inset: 0; z-index: 980;
+  background: rgba(28,26,23,.58);
+  backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 22px;
+  opacity: 0; transition: opacity .18s;
+}
+.auth-modal.on { opacity: 1; }
+
+.auth-box {
+  position: relative;
+  width: 100%; max-width: 400px;
+  background: var(--paper, #fbf8f1);
+  border: 1px solid var(--line-2, #d9d2c6);
+  border-radius: 14px;
+  padding: 32px 32px 26px;
+  box-shadow: 0 30px 80px -30px rgba(0,0,0,.5);
+  transform: translateY(8px) scale(.985);
+  transition: transform .2s cubic-bezier(.2,.8,.3,1);
+}
+.auth-modal.on .auth-box { transform: none; }
+
+.auth-close {
+  position: absolute; top: 11px; right: 13px;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--line, #e8e2d8);
+  background: transparent; color: var(--ink-3, #6b645a);
+  font-size: 17px; line-height: 1; cursor: pointer;
+}
+.auth-close:hover { background: var(--ink, #1c1a17); color: var(--paper, #fff); }
+
+.auth-tt {
+  font-family: var(--serif);
+  font-size: 20px; font-weight: 700;
+  color: var(--ink, #1c1a17);
+  margin-bottom: 8px;
+}
+.auth-sub {
+  font-family: var(--serif);
+  font-size: 13px; line-height: 1.75;
+  color: var(--ink-3, #6b645a);
+  margin: 0 0 20px;
+}
+.auth-sub b { color: var(--ink, #1c1a17); }
+
+.auth-input {
+  display: block; width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 11px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-2, #d9d2c6);
+  border-radius: 8px;
+  background: #fff;
+  font-family: var(--sans, system-ui);
+  font-size: 14px;
+  color: var(--ink, #1c1a17);
+  outline: none;
+  transition: border-color .16s, box-shadow .16s;
+}
+.auth-input:focus {
+  border-color: var(--cinnabar, #a8322a);
+  box-shadow: 0 0 0 3px rgba(168,50,42,.1);
+}
+#authCode { letter-spacing: .3em; text-align: center; font-size: 19px; font-family: ui-monospace, monospace; }
+
+.auth-msg {
+  min-height: 18px;
+  font-size: 12.5px; line-height: 1.6;
+  color: var(--ink-3, #6b645a);
+  margin: 2px 0 10px;
+}
+.auth-msg.is-err { color: var(--cinnabar, #a8322a); }
+
+.auth-btn {
+  display: block; width: 100%;
+  padding: 13px;
+  border: 0; border-radius: 8px;
+  background: var(--cinnabar, #a8322a);
+  color: #fff;
+  font-family: var(--serif);
+  font-size: 14.5px; font-weight: 700;
+  cursor: pointer;
+  transition: background .18s;
+}
+.auth-btn:hover { background: var(--cinnabar-2, #8d2a23); }
+.auth-btn.ghost {
+  background: transparent;
+  color: var(--ink-2, #44403a);
+  border: 1px solid var(--line-2, #d9d2c6);
+}
+.auth-btn.ghost:hover { background: color-mix(in srgb, var(--paper-2,#f3efe7) 70%, transparent); }
+
+.auth-or {
+  display: flex; align-items: center; gap: 10px;
+  margin: 14px 0;
+  font-size: 11.5px; color: var(--ink-4, #9a938a);
+}
+.auth-or::before, .auth-or::after {
+  content: ''; flex: 1; height: 1px; background: var(--line, #e8e2d8);
+}
+
+.auth-foot {
+  margin-top: 16px;
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 12.5px;
+  color: var(--ink-3, #6b645a);
+}
+.auth-foot a { color: var(--cinnabar, #a8322a); text-decoration: none; }
+.auth-foot a:hover { text-decoration: underline; }
+
+/* 顶部账号入口 */
+.acct-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--line-2, #d9d2c6);
+  border-radius: 999px;
+  background: transparent;
+  font-family: var(--serif);
+  font-size: 12.5px;
+  color: var(--ink-2, #44403a);
+  cursor: pointer;
+  transition: border-color .18s, color .18s;
+}
+.acct-btn:hover { border-color: var(--cinnabar, #a8322a); color: var(--cinnabar, #a8322a); }
+.acct-btn.is-in { border-color: var(--cinnabar, #a8322a); color: var(--cinnabar, #a8322a); }
+
+/* 付费卡里的登录提示 */
+.pw-need-login {
+  margin: 0 0 16px;
+  padding: 13px 16px;
+  background: color-mix(in srgb, var(--cinnabar, #a8322a) 6%, transparent);
+  border-left: 3px solid var(--cinnabar, #a8322a);
+  border-radius: 0 7px 7px 0;
+  font-family: var(--serif);
+  font-size: 13.5px; line-height: 1.8;
+  color: var(--ink-2, #44403a);
+}

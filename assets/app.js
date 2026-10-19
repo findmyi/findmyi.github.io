@@ -814,6 +814,13 @@
       return;
     }
 
+    // 必须先登录 —— 否则付款记录没有身份锚点，换设备就找不回来
+    if (window.AuthUI && !window.AuthUI.isLoggedIn()) {
+      toast('请先登录，这样你换设备也能看');
+      window.AuthUI.open('login');
+      return;
+    }
+
     const tier = (window.Payment.tiers() || []).find((t) => t.id === tierId);
     showPayModal('<div class="pw-pay-loading">正在创建订单…</div>');
 
@@ -822,7 +829,11 @@
       const r = await fetch(w, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: 'buy', tier: tierId }),
+        body: JSON.stringify({
+          action: 'buy',
+          tier: tierId,
+          session: window.AuthUI ? window.AuthUI.session() : '',
+        }),
       });
       d = await r.json();
     } catch {
@@ -831,6 +842,11 @@
     }
 
     if (!d || !d.ok) {
+      if (d && d.reason === 'need-login') {
+        closePayModal();
+        window.AuthUI.open('login');
+        return;
+      }
       showPayModal('<div class="pw-pay-err">下单失败：' +
         esc((d && d.reason) || '未知原因') + '</div>');
       return;
@@ -887,20 +903,13 @@
           clearInterval(payPollTimer); payPollTimer = null;
           if (s) s.textContent = '✓ 支付成功，正在解锁…';
 
-          // 自动绑定本机（用户不用输码）
-          const res = await Entitlement.unlock(d.key);
-          if (res.ok) {
-            if (s) s.textContent = '✓ 已解锁 · ' + (res.label || '');
-            await sleep(700);
-            closePayModal();
-            toast('支付成功，已解锁');
-            const art = byId(currentId);
-            if (art) showArticle(art);
-          } else {
-            // 极少数情况（例如本机已绑过别的码）
-            if (s) s.textContent = '支付成功，但本机绑定失败：' + (res.reason || '') +
-              '。授权码：' + d.key + '（可粘贴到下方输入框）';
-          }
+          // 刷新账号状态（等级已经记到邮箱名下）
+          if (window.AuthUI) await window.AuthUI.me(true);
+          await sleep(600);
+          closePayModal();
+          toast('支付成功，已解锁');
+          const art = byId(currentId);
+          if (art) showArticle(art);
         } else if (d.status === 'failed') {
           clearInterval(payPollTimer); payPollTimer = null;
           if (s) s.textContent = '订单已失败，请重新下单。';
@@ -1057,13 +1066,17 @@
 
     const url = (typeof window.Payment !== 'undefined') ? window.Payment.workerUrl() : '';
     const key = (window.License.all() || [])[0] || '';
+    const sess = (window.AuthUI && window.AuthUI.session()) || '';
 
     const fail = (msg) => {
       host.innerHTML = '<p class="load-state is-error">' + esc(msg) + '</p>';
     };
 
     if (!url) return;                       // 未配置服务端，骨架里已有提示
-    if (!key) return fail('没有找到本机的授权码，请重新输入一次。');
+    // 登录了就可以取（不依赖本机有没有码）；没登录才需要码
+    if (!sess && !key) {
+      return fail('请先登录，或输入你购买时收到的授权码。');
+    }
 
     try {
       const ctl = new AbortController();
@@ -1075,6 +1088,7 @@
         body: JSON.stringify({
           action: 'unlock',
           key,
+          session: sess,
           device: window.LicenseServer ? window.LicenseServer.deviceId() : '',
           ids: [id],
         }),
@@ -1087,10 +1101,12 @@
 
       if (!data.ok) {
         const MSG = {
-          used: '这个授权码已绑定到另一台设备。如需换机请联系我们。',
+          used: '这个授权码已绑定到另一台设备。请改用登录方式，或联系我们换机。',
           revoked: '这个授权码已停用。',
           notfound: '服务端查不到这个授权码。',
           invalid: '授权码无效。',
+          'not-purchased': '这个账号还没购买。购买后任何设备登录都能看。',
+          'need-login-or-key': '请先登录，或输入授权码。',
         };
         return fail(MSG[data.reason] || '取回正文失败：' + (data.reason || '未知原因'));
       }
@@ -1120,7 +1136,9 @@
     const gate = host.querySelector('.pw-gated');
     if (gate) gate.remove();
 
-    const unlocked = Entitlement.isUnlocked(a.id);
+    // 已解锁的判定：登录且买过（主）或 本机有有效授权码（辅）
+    const bought = !!(window.AuthUI && window.AuthUI.anyTier());
+    const unlocked = bought || Entitlement.isUnlocked(a.id);
     const wrap = document.createElement('div');
     wrap.innerHTML = unlocked ? unlockedHtml(a.id) : paywallHtml(a.id);
     while (wrap.firstChild) host.appendChild(wrap.firstChild);
@@ -1660,6 +1678,59 @@
     });
   }
 
+  /* ---------- 顶部账号入口 ---------- */
+  function renderAccountBtn() {
+    const host = $('#acctSlot');
+    if (!host) return;
+
+    const logged = window.AuthUI && window.AuthUI.isLoggedIn();
+    const cached = window.AuthUI && window.AuthUI.cached;
+    const bought = !!(cached && cached.tiers && cached.tiers.length);
+
+    if (!logged) {
+      host.innerHTML = '<button class="acct-btn" data-acct="login">登录</button>';
+    } else {
+      const label = bought ? '已购 · 我的' : '我的';
+      host.innerHTML = '<button class="acct-btn is-in" data-acct="menu">' +
+        '<span>' + esc(label) + '</span></button>';
+    }
+
+    const btn = host.querySelector('[data-acct]');
+    if (!btn) return;
+    btn.onclick = () => {
+      if (btn.dataset.acct === 'login') { window.AuthUI.open('login'); return; }
+      openAccountMenu();
+    };
+  }
+
+  function openAccountMenu() {
+    const cached = (window.AuthUI && window.AuthUI.cached) || {};
+    const email = (window.AuthUI && window.AuthUI.email()) || '';
+    const tiers = (cached.tiers || []);
+    const tierText = tiers.length
+      ? tiers.map((t) => t === 'FULL' ? '全站通行' : t === 'PREM' ? '六十四卦' : t).join(' · ')
+      : '还没购买';
+
+    const m = document.getElementById('authModal');
+    if (!m) return;
+    const body = document.getElementById('authBody');
+    if (!body) return;
+    body.innerHTML = [
+      '<div class="auth-tt">我的账号</div>',
+      '<p class="auth-sub">' + esc(email) + '<br>已购：<b>' + esc(tierText) + '</b></p>',
+      tiers.length ? '' : '<p class="auth-sub">买过之后，任何设备登录都能看。</p>',
+      '<button class="auth-btn ghost" id="acctLogout">退出登录</button>',
+    ].join('');
+    m.hidden = false;
+    requestAnimationFrame(() => m.classList.add('on'));
+
+    const lo = document.getElementById('acctLogout');
+    if (lo) lo.onclick = async () => {
+      await window.AuthUI.logout();
+      window.AuthUI.close();
+    };
+  }
+
   /* ---------- 启动 ---------- */
   async function boot() {
     try {
@@ -1668,9 +1739,32 @@
       document.body.innerHTML = '<p style="padding:40px;font-family:sans-serif">目录载入失败，请通过本地服务器访问本站（file:// 协议下浏览器会阻止读取 data/）。</p>';
       return;
     }
+
+    // 处理 Google 回调（URL 里带 ?auth=...）
+    if (window.AuthUI) window.AuthUI.handleCallback();
+
     renderCover();
     bind();
     initTickets();
+    renderAccountBtn();
+
+    // 拉一次登录状态（有 session 才发请求）
+    if (window.AuthUI && window.AuthUI.isLoggedIn()) {
+      window.AuthUI.me(true).then(() => {
+        renderAccountBtn();
+        // 登录状态可能改变付费卡形态，重渲染当前页
+        const a = currentId ? byId(currentId) : null;
+        if (a) showArticle(a);
+      }).catch(() => {});
+    }
+
+    // 登录 / 登出后刷新
+    window.addEventListener('zhouyi:auth', () => {
+      renderAccountBtn();
+      const a = currentId ? byId(currentId) : null;
+      if (a) showArticle(a);
+    });
+
     await route();
   }
 

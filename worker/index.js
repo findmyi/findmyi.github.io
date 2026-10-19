@@ -59,6 +59,7 @@ const CORS = {
 };
 
 import { getProvider } from './pay.js';
+import * as auth from './auth.js';
 
 /* ---- 与 assets/license.js 完全相同的算法 ---- */
 const ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -129,6 +130,11 @@ function tierCovers(tier, id) {
   return scope.indexOf(id) !== -1;
 }
 
+/** 归一化邮箱（和 auth.js 保持一致） */
+function normEmailLite(e) {
+  return String(e || '').trim().toLowerCase();
+}
+
 /* ==========================================================================
    订单系统
    --------------------------------------------------------------------------
@@ -171,7 +177,12 @@ async function getOrder(env, no) {
 }
 
 /**
- * 标记已付款并生成授权码。
+ * 标记已付款并放权。
+ *
+ * 两种放权方式同时做：
+ *   ① 记到订单的邮箱名下（purch:<email>）← 登录即可恢复，换设备不受影响
+ *   ② 生成一个授权码（可用于赠送 / 手动发放 / 老流程兼容）
+ *
  * 幂等：已 paid 的直接返回原记录（支付商可能重复回调）。
  */
 async function markPaidAndIssue(env, no, providerTradeNo) {
@@ -180,7 +191,6 @@ async function markPaidAndIssue(env, no, providerTradeNo) {
   if (rec.status === 'paid' && rec.key) return rec;      // 幂等
 
   const tier = rec.tier || 'PREM';
-  // 用与 genKey 相同的算法生成一个码
   const rawKey = genKey(tier);
   const pretty = prettyKey(rawKey);
 
@@ -191,16 +201,21 @@ async function markPaidAndIssue(env, no, providerTradeNo) {
 
   await putOrder(env, no, rec);
 
-  // 同时把码登记进授权表（未绑定设备，等用户第一次用）
+  // ① 绑定到邮箱 —— 这是主路径
+  if (rec.email) {
+    await auth.grantTier(env, rec.email, tier);
+  }
+
+  // ② 同时留一个码（可赠送 / 客服补发 / 老流程）
   await env.KEYS.put('key:' + rawKey, JSON.stringify({
-    tier, bind: null, used: 0, at: null, order: no,
+    tier, bind: null, used: 0, at: null, order: no, email: rec.email || null,
   }));
 
   return rec;
 }
 
 /** 创建订单 */
-async function createOrder(env, url, body) {
+async function createOrder(env, url, body, email) {
   const tier = String(body.tier || 'PREM').toUpperCase();
   if (!PRICE[tier]) return json({ ok: false, reason: 'badtier' });
 
@@ -212,6 +227,7 @@ async function createOrder(env, url, body) {
   const rec = {
     tier,
     amount,
+    email: email || null,          // ← 订单归到这个邮箱
     status: 'pending',
     at: Date.now(),
     provider: provider.name,
@@ -361,6 +377,28 @@ export default {
       return mockPayPage(url, env);
     }
 
+    /* ================= Google 登录 ================= */
+    if (url.pathname === '/auth/google' && request.method === 'GET') {
+      const u = auth.googleAuthUrl(env, url.searchParams.get('state') || '');
+      if (!u) return new Response('Google 登录未配置（缺 GOOGLE_CLIENT_ID）', { status: 503, headers: CORS });
+      return Response.redirect(u, 302);
+    }
+
+    if (url.pathname === '/auth/google/callback' && request.method === 'GET') {
+      const code = url.searchParams.get('code');
+      const site = (env.SITE_URL || '').replace(/\/$/, '');
+      if (!code) return Response.redirect(site + '/#/?auth=denied', 302);
+
+      const r = await auth.googleExchange(env, code);
+      if (!r.ok) {
+        return Response.redirect(site + '/#/?auth=err&r=' + encodeURIComponent(r.reason || ''), 302);
+      }
+      // 把 session 通过 fragment 交给前端（fragment 不会进服务器日志）
+      return Response.redirect(
+        site + '/#/?auth=ok&s=' + encodeURIComponent(r.token) + '&e=' + encodeURIComponent(r.email),
+        302);
+    }
+
     if (request.method !== 'POST') return json({ ok: false, reason: 'method' }, 405);
 
     let body;
@@ -370,11 +408,22 @@ export default {
       return json({ ok: false, reason: 'badjson' }, 400);
     }
 
-    const { action, key: rawKey, device } = body || {};
+    const { action, key: rawKey, device, session } = body || {};
+
+    /* ================= 账号 ================= */
+    if (action === 'signup') return json(await auth.signup(env, body));
+    if (action === 'verify') return json(await auth.verifyCode(env, body));
+    if (action === 'login') return json(await auth.login(env, body));
+    if (action === 'logout') return json(await auth.logout(env, session));
+    if (action === 'me') return json(await auth.me(env, session));
+    if (action === 'resend') return json(await auth.issueCode(env, body.email));
 
     /* ================= 在线购买：创建订单 ================= */
     if (action === 'buy') {
-      return createOrder(env, url, body);
+      // 必须先登录 —— 否则付款记录没有身份锚点，换设备就找不回来
+      const sess = await auth.readSession(env, session);
+      if (!sess) return json({ ok: false, reason: 'need-login' });
+      return createOrder(env, url, body, sess.email);
     }
 
     /* ================= 在线购买：查订单（前端轮询） ================= */
@@ -483,8 +532,30 @@ export default {
 
     /* ================= 取付费正文（核心） ================= */
     if (action === 'unlock') {
+      const ids = Array.isArray(body.ids) ? body.ids.slice(0, 8) : [];
+      if (!ids.length) return json({ ok: false, reason: 'noids' });
+
+      /* ---- 路径 ①：已登录 → 按邮箱的购买记录放权（主路径） ---- */
+      const sess = await auth.readSession(env, session);
+      if (sess) {
+        const tiers = await auth.tiersOfEmail(env, sess.email);
+        if (!tiers.length) {
+          return json({ ok: false, reason: 'not-purchased', email: sess.email });
+        }
+        const out = {};
+        for (const id of ids) {
+          if (!/^[a-z0-9_]{1,24}$/.test(id)) continue;
+          const can = tiers.some((t) => tierCovers(t, id));
+          out[id] = can ? await env.KEYS.get('content:' + id) : null;
+        }
+        // 取最宽的那个等级作为展示用
+        const best = tiers.includes('FULL') ? 'FULL' : (tiers.includes('PREM') ? 'PREM' : tiers[0]);
+        return json({ ok: true, via: 'session', email: sess.email, tier: best, contents: out });
+      }
+
+      /* ---- 路径 ②：授权码（赠送 / 客服补发 / 老用户） ---- */
       const v = validateKey(rawKey);
-      if (!v) return json({ ok: false, reason: 'invalid' });
+      if (!v) return json({ ok: false, reason: 'need-login-or-key' });
 
       const storeKey = 'key:' + v.key;
       const raw = await env.KEYS.get(storeKey);
@@ -499,8 +570,10 @@ export default {
         return json({ ok: false, reason: 'used' });
       }
 
-      const ids = Array.isArray(body.ids) ? body.ids.slice(0, 8) : [];
-      if (!ids.length) return json({ ok: false, reason: 'noids' });
+      // 绑了邮箱的码：允许同邮箱通过（email 参数由前端带上）
+      if (rec.email && normEmailLite(body.email) === normEmailLite(rec.email)) {
+        // 放行
+      }
 
       const out = {};
       for (const id of ids) {
@@ -508,7 +581,7 @@ export default {
         if (!tierCovers(rec.tier, id)) { out[id] = null; continue; }
         out[id] = await env.KEYS.get('content:' + id);
       }
-      return json({ ok: true, tier: rec.tier, contents: out });
+      return json({ ok: true, via: 'key', tier: rec.tier, contents: out });
     }
 
     return json({ ok: false, reason: 'unknown' }, 400);
