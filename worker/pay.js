@@ -165,9 +165,199 @@ export const afdian = {
   },
 };
 
+/* ==========================================================================
+   4) alipay —— 支付宝当面付（扫码支付）
+   --------------------------------------------------------------------------
+   ⚠️ 前提：必须有营业执照（个体户或企业）。个人签不了。
+
+   签约路径：
+     https://open.alipay.com → 创建应用 → 添加「当面付」能力 → 签约
+
+   需要的 secret：
+     ALIPAY_APP_ID          应用 APPID
+     ALIPAY_PRIVATE_KEY     应用私钥（PKCS#8，单行、不带 BEGIN/END 头尾）
+     ALIPAY_PUBLIC_KEY      支付宝公钥（用于验签回调）
+     ALIPAY_GATEWAY         可选，默认 https://openapi.alipay.com/gateway.do
+
+   接口：alipay.trade.precreate（预下单，返回二维码内容）
+   回调：异步通知，必须用支付宝公钥验签，否则任何人都能伪造「已支付」
+   ========================================================================== */
+
+/** 把 PEM 里的换行和头尾去掉，只留 base64 */
+function stripPem(s) {
+  return String(s || '')
+    .replace(/-----BEGIN [^-]+-----/g, '')
+    .replace(/-----END [^-]+-----/g, '')
+    .replace(/\s+/g, '');
+}
+
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function bytesToB64(bytes) {
+  let s = '';
+  const b = new Uint8Array(bytes);
+  for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+  return btoa(s);
+}
+
+/** 导入 PKCS#8 私钥，用于 RSASSA-PKCS1-v1_5 / SHA-256（= 支付宝的 RSA2） */
+async function importPrivateKey(pem) {
+  const der = b64ToBytes(stripPem(pem));
+  return crypto.subtle.importKey(
+    'pkcs8', der,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false, ['sign']
+  );
+}
+
+/** 导入支付宝公钥（SPKI），用于验签 */
+async function importPublicKey(pem) {
+  const der = b64ToBytes(stripPem(pem));
+  return crypto.subtle.importKey(
+    'spki', der,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false, ['verify']
+  );
+}
+
+/** 支付宝要求：参数按 key 升序，用 & 拼 k=v，值不 URL 编码 */
+function signContent(params) {
+  return Object.keys(params)
+    .filter((k) => k !== 'sign' && k !== 'sign_type' && params[k] !== '' && params[k] != null)
+    .sort()
+    .map((k) => k + '=' + params[k])
+    .join('&');
+}
+
+/** 上海时间 yyyy-MM-dd HH:mm:ss */
+function alipayTimestamp() {
+  const d = new Date(Date.now() + 8 * 3600_000);
+  const p = (n) => String(n).padStart(2, '0');
+  return d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate()) +
+    ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ':' + p(d.getUTCSeconds());
+}
+
+export const alipay = {
+  name: 'alipay',
+
+  async createOrder(env, { outTradeNo, amount, title, notifyUrl, returnUrl }) {
+    const appId = env.ALIPAY_APP_ID;
+    const priv = env.ALIPAY_PRIVATE_KEY;
+    if (!appId || !priv) return err('alipay-not-configured');
+
+    const gateway = env.ALIPAY_GATEWAY || 'https://openapi.alipay.com/gateway.do';
+
+    // 业务参数
+    const biz = {
+      out_trade_no: outTradeNo,
+      total_amount: (amount / 100).toFixed(2),
+      subject: (title || '周易六十四卦').slice(0, 256),
+      product_code: 'FACE_TO_FACE_PAYMENT',
+      timeout_express: '30m',
+    };
+
+    // 公共参数
+    const params = {
+      app_id: appId,
+      method: 'alipay.trade.precreate',
+      format: 'JSON',
+      charset: 'utf-8',
+      sign_type: 'RSA2',
+      timestamp: alipayTimestamp(),
+      version: '1.0',
+      notify_url: notifyUrl || '',
+      biz_content: JSON.stringify(biz),
+    };
+    if (returnUrl) params.return_url = returnUrl;
+
+    // 签名
+    let signB64;
+    try {
+      const key = await importPrivateKey(priv);
+      const data = new TextEncoder().encode(signContent(params));
+      const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, data);
+      signB64 = bytesToB64(sig);
+    } catch (e) {
+      return err('alipay-sign-failed:' + e.message);
+    }
+
+    // 请求
+    const body = new URLSearchParams({ ...params, sign: signB64 });
+    let j;
+    try {
+      const r = await fetch(gateway, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded;charset=utf-8' },
+        body: body.toString(),
+      });
+      j = await r.json();
+    } catch (e) {
+      return err('alipay-network:' + e.message);
+    }
+
+    // 响应结构：{ alipay_trade_precreate_response: {...}, sign: '...' }
+    const resp = j && j.alipay_trade_precreate_response;
+    if (!resp || resp.code !== '10000') {
+      const msg = resp ? (resp.code + ' ' + (resp.sub_msg || resp.msg || '')) : JSON.stringify(j).slice(0, 160);
+      return err('alipay-create-failed:' + msg);
+    }
+
+    return ok({
+      payUrl: resp.qr_code || null,     // 二维码内容（不是图片，前端用它渲染）
+      qrCode: null,
+      providerTradeNo: outTradeNo,
+      qrText: resp.qr_code || null,
+    });
+  },
+
+  /** 异步通知验签 */
+  async verifyNotify(env, { rawBody }) {
+    const pub = env.ALIPAY_PUBLIC_KEY;
+    if (!pub) return null;
+
+    let p;
+    try {
+      p = Object.fromEntries(new URLSearchParams(rawBody));
+    } catch {
+      return null;
+    }
+    if (!p.sign) return null;
+
+    // 用除 sign / sign_type 外的参数重算签名串
+    const content = signContent(p);
+
+    let valid = false;
+    try {
+      const key = await importPublicKey(pub);
+      const sig = b64ToBytes(decodeURIComponent(p.sign));
+      valid = await crypto.subtle.verify(
+        'RSASSA-PKCS1-v1_5', key, sig,
+        new TextEncoder().encode(content)
+      );
+    } catch {
+      return null;
+    }
+    if (!valid) return null;
+
+    if (p.trade_status !== 'TRADE_SUCCESS' && p.trade_status !== 'TRADE_FINISHED') return null;
+
+    return {
+      ok: true,
+      outTradeNo: p.out_trade_no,
+      providerTradeNo: String(p.trade_no || ''),
+      amount: Math.round(Number(p.total_amount || 0) * 100),
+    };
+  },
+};
+
 /* ---------------- 选择器 ---------------- */
 
-const PROVIDERS = { mock, xorpay, afdian };
+const PROVIDERS = { mock, xorpay, afdian, alipay };
 
 export function getProvider(name) {
   return PROVIDERS[String(name || 'mock').toLowerCase()] || mock;

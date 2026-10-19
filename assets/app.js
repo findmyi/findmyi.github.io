@@ -806,6 +806,31 @@
     requestAnimationFrame(() => m.classList.add('on'));
   }
 
+  /** 把一段文本渲染成二维码（用本地 qrcode-generator，不依赖外网） */
+  function renderQrInto(el, text, size) {
+    if (!el || !text) return;
+    const px = size || 190;
+    try {
+      if (typeof qrcode === 'undefined') {
+        el.innerHTML = '<span style="font-size:11px;color:#9a938a">二维码组件未加载</span>';
+        return;
+      }
+      const qr = qrcode(0, 'M');
+      qr.addData(text);
+      qr.make();
+      el.innerHTML = qr.createImgTag(6, 8);
+      const img = el.querySelector('img');
+      if (img) {
+        img.style.width = px + 'px';
+        img.style.height = px + 'px';
+        img.style.display = 'block';
+        img.alt = '支付二维码';
+      }
+    } catch (e) {
+      el.innerHTML = '<span style="font-size:11px;color:#a8322a">二维码生成失败</span>';
+    }
+  }
+
   /** 点「立即购买」 */
   async function startBuy(tierId) {
     const w = (typeof window.Payment !== 'undefined') ? window.Payment.workerUrl() : '';
@@ -882,11 +907,16 @@
       '<div class="pw-pay-tt">' + esc((tier && tier.name) || '终身买断') + '</div>',
       '<div class="pw-pay-amt"><small>￥</small>' + esc(yuan) + '</div>',
       qrBlock,
+      // 支付宝当面付返回的是二维码【内容】（字符串），不是图片，需要前端渲染
+      d.qrText
+        ? '<div class="pw-pay-qr" id="pwDynQr"></div>' +
+          '<div class="pw-pay-tip">打开支付宝扫描上方二维码付款</div>'
+        : '',
       !hasQr && d.qrCode
         ? '<div class="pw-pay-qr"><img alt="支付二维码" src="' + esc(d.qrCode) + '"></div>' +
           '<div class="pw-pay-tip">用微信或支付宝扫码支付</div>'
         : '',
-      !hasQr && payUrl
+      !hasQr && !d.qrText && payUrl
         ? '<a class="pw-pay-go" href="' + esc(payUrl) + '" target="_blank" rel="noopener">去支付 ￥' + esc(yuan) + ' →</a>'
         : '',
       '<div class="pw-pay-status" id="pwPayStatus">' +
@@ -894,6 +924,12 @@
       '</div>',
       hasQr ? '' : '<div class="pw-pay-orderno">订单号 ' + esc(d.outTradeNo) + '</div>',
     ].join(''));
+
+    // 动态二维码（支付宝当面付）
+    if (d.qrText) {
+      const holder = document.getElementById('pwDynQr');
+      if (holder) renderQrInto(holder, d.qrText, 200);
+    }
 
     // 微信 / 支付宝 切换
     if (hasQr) {
