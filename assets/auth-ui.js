@@ -126,13 +126,35 @@
     if (m) { m.hidden = true; m.classList.remove('on'); }
   }
 
-  let mode = 'login';       // login | signup | verify
+  let mode = 'login';       // login | signup | verify | google
   let pendingEmail = '';
+
+  /** 当前允许的登录方式：'google' | 'both' */
+  function authMode() {
+    return (global.Payment && global.Payment.authMode) ? global.Payment.authMode() : 'google';
+  }
 
   function render(tab) {
     if (tab) mode = tab;
     const body = document.getElementById('authBody');
     if (!body) return;
+
+    /* ---------- 只允许 Google 登录 ---------- */
+    if (authMode() === 'google') {
+      body.innerHTML = [
+        '<div class="auth-tt">登录</div>',
+        '<p class="auth-sub">' +
+          '用 Google 账号登录。买过的内容在任何设备登录都能看，90 天内不用再登。' +
+        '</p>',
+        '<button class="auth-btn" id="authGoogle">用 Google 账号继续</button>',
+        '<div class="auth-msg" id="authMsg"></div>',
+        '<div class="auth-foot" style="font-size:12px;line-height:1.7">' +
+          '如果打不开 Google，可以先把页面留着，稍后再试。' +
+        '</div>',
+      ].join('');
+      document.getElementById('authGoogle').onclick = doGoogle;
+      return;
+    }
 
     if (mode === 'verify') {
       body.innerHTML = [

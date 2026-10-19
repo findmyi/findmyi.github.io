@@ -2,7 +2,7 @@
 function makeKV(){const m=new Map();return{async get(k){return m.has(k)?m.get(k):null},async put(k,v,o){m.set(k,v)},async delete(k){m.delete(k)},async list({prefix='',limit=1000}={}){return{keys:[...m.keys()].filter(k=>k.startsWith(prefix)).slice(0,limit).map(name=>({name})),list_complete:true}}}}
 let pass=0,fail=0;
 const ok=(l,c,e='')=>{if(c){pass++;console.log('  ✓ '+l)}else{fail++;console.log('  ✗ '+l+(e?'  → '+e:''))}};
-const env={KEYS:makeKV(),ADMIN_TOKEN:'TK',PAY_PROVIDER:'mock'};
+const env={KEYS:makeKV(),ADMIN_TOKEN:'TK',PAY_PROVIDER:'mock',AUTH_MODE:'both'};
 const post=async(b)=>{const r=await worker.fetch(new Request('https://t.workers.dev',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}),env);const t=await r.text();try{return JSON.parse(t)}catch{return{raw:t}}};
 const E='a@b.com',P='password-123';
 

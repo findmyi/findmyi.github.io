@@ -543,7 +543,20 @@ export default {
 
     const { action, key: rawKey, device, session } = body || {};
 
-    /* ================= 账号 ================= */
+    /* ================= 账号 =================
+       邮箱密码登录由 AUTH_MODE 控制：
+         'google'（默认）→ 只允许 Google，邮箱相关接口一律拒绝
+         'both'          → 两种都允许（需先配好 Resend 域名）
+       Google 登录入口是 /auth/google，不受此开关影响。
+       ================= */
+    const AUTH_MODE = String(env.AUTH_MODE || 'google').toLowerCase();
+    const emailEnabled = AUTH_MODE !== 'google';
+    const EMAIL_OFF = { ok: false, reason: 'email-login-disabled', hint: '目前只支持 Google 账号登录' };
+
+    if (action === 'signup' || action === 'verify' || action === 'login' || action === 'resend') {
+      if (!emailEnabled) return json(EMAIL_OFF, 403);
+    }
+
     if (action === 'signup') return json(await auth.signup(env, body));
     if (action === 'verify') return json(await auth.verifyCode(env, body));
     if (action === 'login') return json(await auth.login(env, body));
