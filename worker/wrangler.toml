@@ -10,3 +10,8 @@ id = "6abf60ac747241b58df60e9d4ce11cdf"
 
 # 管理员密钥不写在这里（要加密），用命令设置：
 #   wrangler secret put ADMIN_TOKEN
+
+# 支付通道：mock（开发，不真收钱）| xorpay | afdian
+# 上线真实收款时改成对应值，并在 Cloudflare 后台加对应 secret
+[vars]
+PAY_PROVIDER = "mock"

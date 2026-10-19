@@ -12,14 +12,9 @@
    跑法：node build/test-worker.mjs
    ========================================================================== */
 
-import { readFileSync } from 'node:fs';
-
-const SRC = readFileSync(new URL('../worker/index.js', import.meta.url), 'utf8')
-  .replace('export default', 'const _handler =')
-  + '\n;export default _handler;';
-
-const mod = await import('data:text/javascript;base64,' + Buffer.from(SRC).toString('base64'));
-const worker = mod.default;
+// Worker 现在是多文件（import './pay.js'），所以直接 import，
+// 不再用 base64 单文件加载（那会找不到 pay.js）。
+import worker from '../worker/index.js';
 
 /* ---------- 模拟 KV ---------- */
 function makeKV() {

@@ -58,6 +58,8 @@ const CORS = {
   'access-control-allow-headers': 'content-type',
 };
 
+import { getProvider } from './pay.js';
+
 /* ---- 与 assets/license.js 完全相同的算法 ---- */
 const ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
 const KEY_LEN = 15;
@@ -127,12 +129,238 @@ function tierCovers(tier, id) {
   return scope.indexOf(id) !== -1;
 }
 
+/* ==========================================================================
+   订单系统
+   --------------------------------------------------------------------------
+   订单存在 KV：order:<outTradeNo> → {
+     tier, amount, status: 'pending'|'paid'|'failed',
+     key?, at, providerTradeNo, title
+   }
+
+   状态机：pending ──支付回调──▶ paid（此时才生成授权码）
+           pending ──超时/失败──▶ failed
+   ========================================================================== */
+
+/** 价格表（分）。与 assets/payment.js 的 tiers 必须一致。 */
+const PRICE = { PREM: 99900, FULL: 199900 };
+const TITLE = {
+  PREM: '周易六十四卦 · 困境对照表（终身买断）',
+  FULL: '周易六十四卦 · 全站通行（终身买断）',
+};
+
+function genOutTradeNo() {
+  const buf = new Uint8Array(9);
+  crypto.getRandomValues(buf);
+  let s = '';
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for (let i = 0; i < buf.length; i++) s += A[buf[i] % A.length];
+  return 'ZY' + Date.now().toString(36).toUpperCase() + s;
+}
+
+async function putOrder(env, no, rec) {
+  await env.KEYS.put('order:' + no, JSON.stringify(rec), {
+    // 订单 7 天后自动过期，避免 KV 无限膨胀
+    expirationTtl: 60 * 60 * 24 * 7,
+  });
+}
+
+async function getOrder(env, no) {
+  const raw = await env.KEYS.get('order:' + no);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+/**
+ * 标记已付款并生成授权码。
+ * 幂等：已 paid 的直接返回原记录（支付商可能重复回调）。
+ */
+async function markPaidAndIssue(env, no, providerTradeNo) {
+  const rec = await getOrder(env, no);
+  if (!rec) return { ok: false, reason: 'notfound' };
+  if (rec.status === 'paid' && rec.key) return rec;      // 幂等
+
+  const tier = rec.tier || 'PREM';
+  // 用与 genKey 相同的算法生成一个码
+  const rawKey = genKey(tier);
+  const pretty = prettyKey(rawKey);
+
+  rec.status = 'paid';
+  rec.key = pretty;
+  rec.at = Date.now();
+  rec.providerTradeNo = providerTradeNo || rec.providerTradeNo || '';
+
+  await putOrder(env, no, rec);
+
+  // 同时把码登记进授权表（未绑定设备，等用户第一次用）
+  await env.KEYS.put('key:' + rawKey, JSON.stringify({
+    tier, bind: null, used: 0, at: null, order: no,
+  }));
+
+  return rec;
+}
+
+/** 创建订单 */
+async function createOrder(env, url, body) {
+  const tier = String(body.tier || 'PREM').toUpperCase();
+  if (!PRICE[tier]) return json({ ok: false, reason: 'badtier' });
+
+  const provider = getProvider(env.PAY_PROVIDER || 'mock');
+  const no = genOutTradeNo();
+  const amount = PRICE[tier];
+  const origin = url.origin;
+
+  const rec = {
+    tier,
+    amount,
+    status: 'pending',
+    at: Date.now(),
+    provider: provider.name,
+    title: TITLE[tier],
+  };
+  await putOrder(env, no, rec);
+
+  const res = await provider.createOrder(env, {
+    outTradeNo: no,
+    amount,
+    title: TITLE[tier],
+    notifyUrl: origin + '/notify',
+    returnUrl: body.returnUrl || '',
+    tier,
+  });
+
+  if (!res.ok) {
+    await putOrder(env, no, { ...rec, status: 'failed', err: res.reason });
+    return json({ ok: false, reason: res.reason });
+  }
+
+  return json({
+    ok: true,
+    outTradeNo: no,
+    tier,
+    amount,
+    provider: provider.name,
+    payUrl: res.payUrl || null,
+    qrCode: res.qrCode || null,
+  });
+}
+
+/** 支付回调 */
+async function handleNotify(request, env, url) {
+  const provider = getProvider(env.PAY_PROVIDER || 'mock');
+
+  let rawBody = '';
+  try {
+    rawBody = await request.text();
+  } catch {
+    return new Response('bad body', { status: 400, headers: CORS });
+  }
+
+  const headers = Object.fromEntries(request.headers);
+
+  let v = null;
+  try {
+    v = await provider.verifyNotify(env, { rawBody, headers, request });
+  } catch {
+    v = null;
+  }
+
+  if (!v || !v.ok) {
+    return new Response('verify failed', { status: 400, headers: CORS });
+  }
+
+  const rec = await markPaidAndIssue(env, v.outTradeNo, v.providerTradeNo);
+
+  // 不同支付商要求的应答格式不同，这里给一个通用的成功应答
+  if (provider.name === 'xorpay') {
+    return new Response('success', { headers: CORS });
+  }
+  return new Response(JSON.stringify({ ec: 200, em: 'ok' }), {
+    headers: { ...CORS, 'content-type': 'application/json' },
+  });
+}
+
+/** mock 收银台（只在 PAY_PROVIDER=mock 时可用） */
+function mockPayPage(url, env) {
+  const no = url.searchParams.get('no') || '';
+  const amount = url.searchParams.get('amount') || '0';
+  const title = url.searchParams.get('title') || '';
+  const yuan = (Number(amount) / 100).toFixed(2);
+
+  const html = `<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>模拟收银台</title>
+<style>
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f6f3ec;color:#1c1a17;
+display:flex;align-items:center;justify-content:center;min-height:100vh}
+.box{background:#fffdf9;border:1px solid #e0d8c8;border-radius:14px;padding:34px 38px;max-width:420px;
+box-shadow:0 20px 50px -30px rgba(0,0,0,.35);text-align:center}
+.tag{display:inline-block;background:#a8322a;color:#fff;font-size:11px;letter-spacing:.14em;
+padding:4px 12px;border-radius:99px;margin-bottom:18px}
+h1{font-size:19px;margin:0 0 8px;font-weight:700}
+.t{color:#6b645a;font-size:13.5px;line-height:1.7;margin:0 0 22px}
+.price{font-size:38px;font-weight:700;color:#a8322a;margin:0 0 4px}
+.price small{font-size:18px}
+.no{font-size:11.5px;color:#9a938a;margin:0 0 26px;font-family:ui-monospace,monospace}
+button{width:100%;padding:14px;border:0;border-radius:9px;background:#a8322a;color:#fff;
+font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+button:disabled{opacity:.5;cursor:default}
+.done{margin-top:18px;font-size:14px;color:#2f7a4f;font-weight:700;display:none}
+.note{margin-top:20px;font-size:11.5px;color:#9a938a;line-height:1.6}
+</style></head>
+<body><div class="box">
+<div class="tag">模拟收银台 · 不产生真实扣款</div>
+<h1>${title || '周易六十四卦'}</h1>
+<p class="t">这是开发用的模拟支付页。点下面的按钮即视为"付款成功"。</p>
+<div class="price"><small>￥</small>${yuan}</div>
+<p class="no">订单号 ${no}</p>
+<button id="pay">模拟支付成功</button>
+<div class="done" id="done">✓ 已支付，正在返回网站…</div>
+<div class="note">正式收款时需要把 PAY_PROVIDER 换成真实支付商（xorpay / afdian）。</div>
+</div>
+<script>
+document.getElementById('pay').onclick = async function(){
+  this.disabled = true; this.textContent = '处理中…';
+  try {
+    const r = await fetch('/', {method:'POST',headers:{'content-type':'application/json'},
+      body: JSON.stringify({action:'mock-pay', outTradeNo: ${JSON.stringify(no)}})});
+    const d = await r.json();
+    if (d.ok) {
+      document.getElementById('done').style.display = 'block';
+      this.style.display = 'none';
+      const ret = ${JSON.stringify(url.searchParams.get('ret') || '')};
+      setTimeout(() => { if (ret) location.href = ret; }, 900);
+    } else {
+      this.disabled = false; this.textContent = '失败：' + (d.reason || '未知');
+    }
+  } catch(e) {
+    this.disabled = false; this.textContent = '网络错误，重试';
+  }
+};
+</script></body></html>`;
+
+  return new Response(html, {
+    headers: { ...CORS, 'content-type': 'text/html; charset=utf-8' },
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
     if (url.pathname === '/health') return json({ ok: true, ts: Date.now() });
+
+    /* ================= 支付回调（独立路径，不走 action） ================= */
+    if (url.pathname === '/notify') {
+      return handleNotify(request, env, url);
+    }
+
+    /* ================= mock 收银台页面（仅开发用） ================= */
+    if (url.pathname === '/mock-pay' && request.method === 'GET') {
+      return mockPayPage(url, env);
+    }
+
     if (request.method !== 'POST') return json({ ok: false, reason: 'method' }, 405);
 
     let body;
@@ -143,6 +371,38 @@ export default {
     }
 
     const { action, key: rawKey, device } = body || {};
+
+    /* ================= 在线购买：创建订单 ================= */
+    if (action === 'buy') {
+      return createOrder(env, url, body);
+    }
+
+    /* ================= 在线购买：查订单（前端轮询） ================= */
+    if (action === 'order') {
+      const no = String(body.outTradeNo || '').trim();
+      if (!/^[A-Za-z0-9_-]{6,40}$/.test(no)) return json({ ok: false, reason: 'badno' });
+      const rec = await getOrder(env, no);
+      if (!rec) return json({ ok: false, reason: 'notfound' });
+      return json({
+        ok: true,
+        status: rec.status,                  // pending | paid | failed
+        tier: rec.tier,
+        key: rec.status === 'paid' ? rec.key : null,   // 只有已付款才给码
+      });
+    }
+
+    /* ================= mock：模拟支付成功（仅开发） ================= */
+    if (action === 'mock-pay') {
+      if (String(env.PAY_PROVIDER || 'mock') !== 'mock') {
+        return json({ ok: false, reason: 'not-mock-mode' }, 403);
+      }
+      const no = String(body.outTradeNo || '').trim();
+      const rec = await getOrder(env, no);
+      if (!rec) return json({ ok: false, reason: 'notfound' });
+      if (rec.status === 'paid') return json({ ok: true, status: 'paid', already: true });
+      const filled = await markPaidAndIssue(env, no, 'MOCK');
+      return json({ ok: true, status: 'paid', key: filled.key });
+    }
 
     /* ================= 管理员接口 ================= */
     if (action === 'issue' || action === 'revoke' || action === 'stats') {

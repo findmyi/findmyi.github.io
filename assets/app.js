@@ -743,7 +743,7 @@
         : '';
 
       return [
-        '<div class="pw-tier' + (t.featured ? ' is-featured' : '') + '">',
+        '<div class="pw-tier' + (t.featured ? ' is-featured' : '') + '" data-tier="' + esc(t.id) + '">',
         t.featured ? '  <div class="pw-tier-flag">最常选</div>' : '',
         '  <div class="pw-tier-name">' + esc(t.name) + '</div>',
         '  <div class="pw-tier-price"><small>￥</small>' + esc(String(t.price)) + '</div>',
@@ -751,12 +751,189 @@
         '  <ul class="pw-tier-items">' + items + '</ul>',
         '  ' + ex,
         t.note ? '  <div class="pw-tier-note">' + esc(t.note) + '</div>' : '',
+        // 站内直接购买：点它就走 下单 → 支付 → 自动解锁
+        '  <button type="button" class="pw-tier-buy" data-buy="' + esc(t.id) + '">',
+        '    立即购买 · ￥' + esc(String(t.price)),
+        '  </button>',
         '</div>',
       ].join('\n');
     }).join('\n');
 
     return '<div class="pw-sec-tt">怎么买 · 两档，都是终身买断</div>' +
-           '<div class="pw-tiers">' + cards + '</div>';
+           '<div class="pw-tiers">' + cards + '</div>' +
+           '<div class="pw-pay-modal" id="pwPayModal" hidden>' +
+           '  <div class="pw-pay-box">' +
+           '    <button type="button" class="pw-pay-close" id="pwPayClose" aria-label="关闭">×</button>' +
+           '    <div class="pw-pay-body" id="pwPayBody"></div>' +
+           '  </div>' +
+           '</div>';
+  }
+
+  /* ==========================================================================
+     站内购买流程
+     --------------------------------------------------------------------------
+     点「立即购买」→ Worker 建订单 → 展示支付 → 轮询状态 → 付款成功自动解锁。
+
+     用户不需要输码、不需要加微信。
+     授权码在付款成功时由 Worker 生成，前端拿到后自动绑定本机。
+     ========================================================================== */
+
+  let payPollTimer = null;
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  /** 把 Worker 返回的相对路径拼成绝对地址 */
+  function absPayUrl(u) {
+    if (!u) return '';
+    if (/^https?:\/\//i.test(u)) return u;
+    const w = (typeof window.Payment !== 'undefined') ? window.Payment.workerUrl() : '';
+    if (!w) return u;
+    try { return new URL(w).origin + u; } catch { return u; }
+  }
+
+  function closePayModal() {
+    const m = document.getElementById('pwPayModal');
+    if (m) { m.hidden = true; m.classList.remove('on'); }
+    if (payPollTimer) { clearInterval(payPollTimer); payPollTimer = null; }
+  }
+
+  function showPayModal(html) {
+    const m = document.getElementById('pwPayModal');
+    const b = document.getElementById('pwPayBody');
+    if (!m || !b) return;
+    b.innerHTML = html;
+    m.hidden = false;
+    requestAnimationFrame(() => m.classList.add('on'));
+  }
+
+  /** 点「立即购买」 */
+  async function startBuy(tierId) {
+    const w = (typeof window.Payment !== 'undefined') ? window.Payment.workerUrl() : '';
+    if (!w) {
+      toast('购买通道还没配置（assets/payment.js 的 workerUrl 为空）');
+      return;
+    }
+
+    const tier = (window.Payment.tiers() || []).find((t) => t.id === tierId);
+    showPayModal('<div class="pw-pay-loading">正在创建订单…</div>');
+
+    let d;
+    try {
+      const r = await fetch(w, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'buy', tier: tierId }),
+      });
+      d = await r.json();
+    } catch {
+      showPayModal('<div class="pw-pay-err">网络不通，无法创建订单。请稍后重试。</div>');
+      return;
+    }
+
+    if (!d || !d.ok) {
+      showPayModal('<div class="pw-pay-err">下单失败：' +
+        esc((d && d.reason) || '未知原因') + '</div>');
+      return;
+    }
+
+    const yuan = (d.amount / 100).toFixed(0);
+    const payUrl = absPayUrl(d.payUrl);
+
+    showPayModal([
+      '<div class="pw-pay-tt">' + esc((tier && tier.name) || '终身买断') + '</div>',
+      '<div class="pw-pay-amt"><small>￥</small>' + esc(yuan) + '</div>',
+      d.qrCode
+        ? '<div class="pw-pay-qr"><img alt="支付二维码" src="' + esc(d.qrCode) + '"></div>' +
+          '<div class="pw-pay-tip">用微信或支付宝扫码支付</div>'
+        : '',
+      payUrl
+        ? '<a class="pw-pay-go" href="' + esc(payUrl) + '" target="_blank" rel="noopener">去支付 ￥' + esc(yuan) + ' →</a>'
+        : '',
+      '<div class="pw-pay-status" id="pwPayStatus">等待支付…（付款后本页会自动解锁）</div>',
+      '<div class="pw-pay-orderno">订单号 ' + esc(d.outTradeNo) + '</div>',
+    ].join(''));
+
+    pollOrder(d.outTradeNo);
+  }
+
+  /** 轮询订单状态，付了钱就自动解锁 */
+  function pollOrder(outTradeNo) {
+    const w = (typeof window.Payment !== 'undefined') ? window.Payment.workerUrl() : '';
+    if (!w) return;
+
+    if (payPollTimer) clearInterval(payPollTimer);
+    let tries = 0;
+
+    payPollTimer = setInterval(async () => {
+      tries++;
+      if (tries > 240) {          // 12 分钟
+        clearInterval(payPollTimer); payPollTimer = null;
+        const s = document.getElementById('pwPayStatus');
+        if (s) s.textContent = '等待超时。如果你已经付款，请联系我们并附上订单号。';
+        return;
+      }
+
+      try {
+        const r = await fetch(w, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ action: 'order', outTradeNo }),
+        });
+        const d = await r.json();
+        if (!d || !d.ok) return;
+
+        const s = document.getElementById('pwPayStatus');
+        if (d.status === 'paid' && d.key) {
+          clearInterval(payPollTimer); payPollTimer = null;
+          if (s) s.textContent = '✓ 支付成功，正在解锁…';
+
+          // 自动绑定本机（用户不用输码）
+          const res = await Entitlement.unlock(d.key);
+          if (res.ok) {
+            if (s) s.textContent = '✓ 已解锁 · ' + (res.label || '');
+            await sleep(700);
+            closePayModal();
+            toast('支付成功，已解锁');
+            const art = byId(currentId);
+            if (art) showArticle(art);
+          } else {
+            // 极少数情况（例如本机已绑过别的码）
+            if (s) s.textContent = '支付成功，但本机绑定失败：' + (res.reason || '') +
+              '。授权码：' + d.key + '（可粘贴到下方输入框）';
+          }
+        } else if (d.status === 'failed') {
+          clearInterval(payPollTimer); payPollTimer = null;
+          if (s) s.textContent = '订单已失败，请重新下单。';
+        }
+      } catch {
+        /* 网络抖动，继续轮询 */
+      }
+    }, 3000);
+  }
+
+  /** 绑定购买按钮 + 关闭弹层 */
+  function bindBuyButtons() {
+    $$('[data-buy]').forEach((el) => {
+      if (el.dataset.bound === '1') return;
+      el.dataset.bound = '1';
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        startBuy(el.dataset.buy);
+      });
+    });
+
+    const close = document.getElementById('pwPayClose');
+    if (close && close.dataset.bound !== '1') {
+      close.dataset.bound = '1';
+      close.addEventListener('click', closePayModal);
+    }
+    const modal = document.getElementById('pwPayModal');
+    if (modal && modal.dataset.bound !== '1') {
+      modal.dataset.bound = '1';
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closePayModal();
+      });
+    }
   }
 
   /** 构建付费卡 DOM（未解锁时） */
@@ -964,6 +1141,7 @@
     }
 
     bindPaywallForm(a);
+    bindBuyButtons();
   }
 
   /** 绑定解锁表单 */

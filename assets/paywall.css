@@ -529,3 +529,133 @@
   background: color-mix(in srgb, var(--paper-2, #f3efe7) 70%, transparent);
   font-weight: 700;
 }
+
+/* ==========================================================================
+   站内购买：档位按钮 + 支付弹层
+   ========================================================================== */
+.pw-tier-buy {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--cinnabar, #a8322a);
+  color: #fff;
+  font-family: var(--serif);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  cursor: pointer;
+  transition: background .18s, transform .12s, box-shadow .2s;
+}
+.pw-tier-buy:hover {
+  background: var(--cinnabar-2, #8d2a23);
+  box-shadow: 0 10px 22px -12px rgba(168,50,42,.7);
+}
+.pw-tier-buy:active { transform: translateY(1px); }
+
+/* 非主推档的按钮弱一点 */
+.pw-tier:not(.is-featured) .pw-tier-buy {
+  background: transparent;
+  color: var(--cinnabar, #a8322a);
+  border: 1px solid var(--cinnabar, #a8322a);
+}
+.pw-tier:not(.is-featured) .pw-tier-buy:hover {
+  background: var(--cinnabar, #a8322a);
+  color: #fff;
+}
+
+/* ---------- 支付弹层 ---------- */
+.pw-pay-modal {
+  position: fixed; inset: 0; z-index: 950;
+  background: rgba(28,26,23,.55);
+  backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 22px;
+  opacity: 0; transition: opacity .18s;
+}
+.pw-pay-modal.on { opacity: 1; }
+
+.pw-pay-box {
+  position: relative;
+  width: 100%; max-width: 420px;
+  background: var(--paper, #fbf8f1);
+  border: 1px solid var(--line-2, #d9d2c6);
+  border-radius: 14px;
+  padding: 30px 30px 24px;
+  box-shadow: 0 30px 80px -30px rgba(0,0,0,.5);
+  text-align: center;
+  transform: translateY(8px) scale(.985);
+  transition: transform .2s cubic-bezier(.2,.8,.3,1);
+}
+.pw-pay-modal.on .pw-pay-box { transform: none; }
+
+.pw-pay-close {
+  position: absolute; top: 11px; right: 13px;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--line, #e8e2d8);
+  background: transparent; color: var(--ink-3, #6b645a);
+  font-size: 17px; line-height: 1; cursor: pointer;
+}
+.pw-pay-close:hover { background: var(--ink, #1c1a17); color: var(--paper, #fff); }
+
+.pw-pay-body { padding-top: 4px; }
+
+.pw-pay-tt {
+  font-family: var(--serif); font-size: 15px; font-weight: 700;
+  color: var(--ink, #1c1a17); margin-bottom: 10px;
+}
+.pw-pay-amt {
+  font-family: var(--serif); font-size: 36px; font-weight: 700;
+  color: var(--cinnabar, #a8322a); line-height: 1; margin-bottom: 18px;
+}
+.pw-pay-amt small { font-size: 18px; margin-right: 2px; }
+
+.pw-pay-qr {
+  margin: 0 auto 10px;
+  width: 190px; height: 190px;
+  background: #fff; border: 1px solid var(--line, #e8e2d8);
+  border-radius: 9px; padding: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.pw-pay-qr img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+.pw-pay-tip { font-size: 12.5px; color: var(--ink-3, #6b645a); margin-bottom: 14px; }
+
+.pw-pay-go {
+  display: block;
+  padding: 13px 16px;
+  border-radius: 8px;
+  background: var(--cinnabar, #a8322a);
+  color: #fff !important;
+  font-family: var(--serif);
+  font-size: 15px; font-weight: 700;
+  text-decoration: none;
+  transition: background .18s;
+}
+.pw-pay-go:hover { background: var(--cinnabar-2, #8d2a23); }
+
+.pw-pay-status {
+  margin-top: 16px;
+  font-family: var(--serif);
+  font-size: 13px; line-height: 1.7;
+  color: var(--ink-3, #6b645a);
+  padding: 10px 13px;
+  background: color-mix(in srgb, var(--paper-2, #f3efe7) 60%, transparent);
+  border-radius: 7px;
+}
+
+.pw-pay-orderno {
+  margin-top: 10px;
+  font-size: 11px; color: var(--ink-4, #9a938a);
+  font-family: ui-monospace, monospace;
+  word-break: break-all;
+}
+
+.pw-pay-loading, .pw-pay-err {
+  padding: 26px 10px;
+  font-family: var(--serif); font-size: 14px;
+  color: var(--ink-3, #6b645a);
+}
+.pw-pay-err { color: var(--cinnabar, #a8322a); }
