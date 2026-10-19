@@ -24,6 +24,8 @@
   const tocView = $('#tocView');
   const articleView = $('#articleView');
   const topbar = $('#topbar');
+  const standaloneView = $('#standaloneView');   // 处境索引等独立视图
+  const articleTocEl = $('#artToc');
 
   let M = null;                 // manifest
   const cache = {};             // 正文片段缓存
@@ -198,13 +200,18 @@
     }
 
     // 阅读路径（贴近前置篇的真实入口）
+    /* 首页入口：前 8 个是「你现在遇到什么事」，最后一个给完全没接触过的人。
+       处境类跳到 #/s/<code>，内容来自 data/situ.json 的 384 条。 */
     const paths = [
-      { glyph: '◆', tt: '我完全没接触过《周易》', sub: '从卷首三篇开始——建立正确认知，约 11 分钟', to: '#/p/preface' },
-      { glyph: '◆', tt: '我想知道卦象怎么看', sub: '基础篇：阴阳、八卦、爻位、成卦原理', to: '#/p/basics-yinyang' },
-      { glyph: '◆', tt: '我关心它准不准、能不能算命', sub: '「占卜与决策」——全书最重要的一篇', to: '#/p/method-divination' },
-      { glyph: '◆', tt: '我想直接按处境查卦', sub: '「索引与检索」——按进退、顺逆、人际分类', to: '#/p/method-index' },
-      { glyph: '◆', tt: '我想知道该从哪一卦读起', sub: '「本书怎么用」——三种读法与一个原则', to: '#/p/howto' },
-      { glyph: '䷀', tt: '我已经懂了，直接看卦', sub: '进入六十四卦——上经三十、下经三十四', to: '#/toc' },
+      { glyph: '①', tt: '想上去，上不去', sub: '位置低、有本事、没机会', to: '#/s/S1' },
+      { glyph: '②', tt: '刚被看见，站不稳', sub: '刚出头，根基还浅，有人盯着', to: '#/s/S2' },
+      { glyph: '③', tt: '卡在中间', sub: '承上启下，两头受气，最容易背锅', to: '#/s/S3' },
+      { glyph: '④', tt: '到了高位，怕掉', sub: '已经成了，反而睡不好', to: '#/s/S4' },
+      { glyph: '⑤', tt: '被打压，动不了', sub: '被排挤、被算计、被架空', to: '#/s/S5' },
+      { glyph: '⑥', tt: '面临选择，不敢动', sub: '要不要做、选哪个，站在关口上', to: '#/s/S6' },
+      { glyph: '⑦', tt: '已经崩了，要重来', sub: '失败了，损失已成，得从头收拾', to: '#/s/S7' },
+      { glyph: '⑧', tt: '在等，什么也做不了', sub: '时机不到，只能熬着', to: '#/s/S8' },
+      { glyph: '◆', tt: '我完全没接触过《周易》', sub: '从卷首三篇开始，约 11 分钟', to: '#/p/preface' },
     ];
     $('#readingPaths').innerHTML = paths.map((p) => `
       <a class="path-card" href="${p.to}">
@@ -1573,6 +1580,7 @@
     coverView.hidden = false;
     tocView.hidden = true;
     articleView.hidden = true;
+    if (standaloneView) standaloneView.hidden = true;
     topbar.hidden = true;
     readProgressEl.hidden = true;
     $('#pet').hidden = true;
@@ -1617,6 +1625,12 @@
       location.hash = '#/toc';
       return;
     }
+    if (h.startsWith('#/s')) {
+      const tag = h.split('/')[2];
+      if (tag) { await showSituTag(tag); return; }
+      await showSituIndex();
+      return;
+    }
     if (h.startsWith('#/toc')) {
       showToc();
       const key = h.split('/')[2];
@@ -1629,6 +1643,144 @@
       return;
     }
     showCover();
+  }
+
+  /* ==========================================================================
+     处境索引
+     --------------------------------------------------------------------------
+     用户不需要知道自己在第几卦 —— 他只需要说清「我现在怎么了」。
+     数据来自 data/situ.json（384 条：处境 / 铁律 / 例外）。
+     ========================================================================== */
+
+  let SITU = null;
+
+  async function loadSitu() {
+    if (SITU) return SITU;
+    try {
+      SITU = await getJSON('data/situ.json');
+    } catch {
+      SITU = { tags: [], items: [] };
+    }
+    return SITU;
+  }
+
+  function situTagOf(code) {
+    const s = SITU && SITU.tags ? SITU.tags.find((t) => t.code === code) : null;
+    return s || null;
+  }
+
+  function situItemsOf(code) {
+    const items = (SITU && SITU.items) || [];
+    return items.filter((it) => it.tag === code || (it.subs || []).indexOf(code) !== -1);
+  }
+
+  /** #/s —— 八个入口 */
+  async function showSituIndex() {
+    const s = await loadSitu();
+
+    const cards = (s.tags || []).map((t) => {
+      const n = t.count || 0;
+      const dim = n === 0 ? ' is-dim' : '';
+      return '<a class="situ-card' + dim + '" href="#/s/' + esc(t.code) + '">' +
+        '<div class="situ-card-tt">' + esc(t.name) + '</div>' +
+        '<div class="situ-card-sub">' + esc(t.desc) + '</div>' +
+        '<div class="situ-card-n">' + (n ? n + ' 条' : '整理中') + '</div>' +
+      '</a>';
+    }).join('');
+
+    const html = [
+      '<section class="situ-view">',
+      '  <div class="situ-eyebrow">SITUATIONS · 按处境查找</div>',
+      '  <h1 class="situ-h1">你现在遇到什么事？</h1>',
+      '  <p class="situ-lede">' +
+      '    不用先读懂卦。说出你现在的处境，直接看和你对应的那一爻——' +
+      '    它说什么、该怎么做、什么情况下这条不成立。' +
+      '  </p>',
+      '  <div class="situ-grid">' + cards + '</div>',
+      '  <div class="situ-foot">',
+      '    <p>' + (s.total || 0) + ' 条处境，来自六十四卦的三百八十四爻。' +
+      '      每一条都给出「你现在在哪」「该做什么」「什么时候不适用」三段。</p>',
+      '    <p><a href="#/toc">← 或者按卦序浏览</a></p>',
+      '  </div>',
+      '</section>',
+    ].join('\n');
+
+    renderStandalone(html);
+  }
+
+  /** #/s/S1 —— 某一类处境下的条目 */
+  async function showSituTag(code) {
+    const s = await loadSitu();
+    const tag = situTagOf(code);
+    if (!tag) { location.hash = '#/s'; return; }
+
+    const items = situItemsOf(code);
+
+    const list = items.map((it, i) => {
+      const id = 'sit-' + i;
+      return [
+        '<article class="situ-item" id="' + id + '">',
+        '  <div class="situ-item-head">',
+        '    <span class="situ-item-idx">' + String(i + 1).padStart(2, '0') + '</span>',
+        '    <div>',
+        '      <h3 class="situ-item-tt">' + esc(it.verdict) + '</h3>',
+        '      <div class="situ-item-src">' + esc(it.gua) + '卦 · ' + esc(it.pos) + '</div>',
+        '    </div>',
+        '  </div>',
+        '  <div class="situ-block situ-block-where">',
+        '    <span class="situ-label">你在哪</span>',
+        '    <p>' + esc(it.situ) + '</p>',
+        '  </div>',
+        '  <div class="situ-block situ-block-do">',
+        '    <span class="situ-label">该做什么</span>',
+        '    <p>' + esc(it.rule) + '</p>',
+        '  </div>',
+        it.exc
+          ? '  <div class="situ-block situ-block-exc">' +
+            '<span class="situ-label">什么情况下不适用</span>' +
+            '<p>' + esc(it.exc) + '</p></div>'
+          : '',
+        '  <div class="situ-item-foot">',
+        '    <span class="situ-yao">' + esc(it.yao) + '</span>',
+        '    <a class="situ-jump" href="#/p/' + esc(hexIdOfN(it.n)) + '">读这一卦 →</a>',
+        '  </div>',
+        '</article>',
+      ].join('\n');
+    }).join('\n');
+
+    const html = [
+      '<section class="situ-view">',
+      '  <div class="situ-eyebrow"><a href="#/s">← 全部处境</a></div>',
+      '  <h1 class="situ-h1">' + esc(tag.name) + '</h1>',
+      '  <p class="situ-lede">' + esc(tag.desc) + '　共 ' + items.length + ' 条。</p>',
+      items.length
+        ? '<div class="situ-list">' + list + '</div>'
+        : '<p class="situ-lede">这一类还在整理。</p>',
+      '  <div class="situ-foot"><p><a href="#/s">← 换个处境</a> · <a href="#/toc">按卦序浏览</a></p></div>',
+      '</section>',
+    ].join('\n');
+
+    renderStandalone(html);
+  }
+
+  /** 卦序 n → 文章 id */
+  function hexIdOfN(n) {
+    const a = (M.articles || []).find((x) => x.n === n);
+    return a ? a.id : 'qian';
+  }
+
+  /** 独立视图渲染（处境页用，不依赖文章视图） */
+  function renderStandalone(html) {
+    coverView.hidden = true;
+    tocView.hidden = true;
+    articleView.hidden = true;
+    if (readProgressEl) readProgressEl.hidden = true;
+    if (!standaloneView) return;
+    standaloneView.hidden = false;
+    standaloneView.innerHTML = html;
+    topbar.hidden = false;
+    if (articleTocEl) articleTocEl.hidden = true;
+    window.scrollTo(0, 0);
   }
 
   /* ---------- 阅读进度 ---------- */

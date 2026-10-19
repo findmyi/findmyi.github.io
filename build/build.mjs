@@ -19,6 +19,9 @@ import { PREMIUM_V3, PREMIUM_V3_IDS } from '../content/premium-v3.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 
+/** 整篇免费的卦 —— 用它们做「进店样品」 */
+const FREE_HEX = new Set(['qian', 'kun']);
+
 const ALL = [...HEX_1_16, ...HEX_17_32, ...HEX_33_48, ...HEX_49_64];
 
 /* ---------------- id 归一化 ----------------
@@ -122,7 +125,19 @@ function articleHTML(h) {
    */
   const prem = premiumOf(h.id);
   let premiumSection = '';
-  if (prem) {
+  if (prem && FREE_HEX.has(h.id)) {
+    /* 乾坤整篇免费：直接把 depth 写进静态产物，不留付费墙。
+       代价是这两卦的 1.9 万字可以被任何人复制 —— 但它换来的是
+       用户第一次看到「逐爻拆解」长什么样，这是转化的前提。 */
+    premiumSection = `
+<section class="pw-free-full" id="s-depth">
+  <h2 id="p-depth">逐爻详解</h2>
+  <div class="depth-body">
+${prem.depth}
+  </div>
+</section>
+`;
+  } else if (prem) {
     premiumSection = `
 <section class="pw-gated" id="s-premium" data-premium="${esc(h.id)}" data-tier="${esc(prem.tier)}">
   <h2 id="p-teaser">深度解读 · 付费章节</h2>
@@ -311,7 +326,9 @@ const articles = ALL.map((h) => {
     yaoCount: h.yao.length,
     /* tier 驱动前端的付费墙。缺省即 'free' —— 前端据此优雅降级：
        若整个 manifest 没有 tier 字段，全站都当作免费。 */
-    tier: prem ? 'premium' : 'free',
+    /* 乾坤两卦整篇免费 —— 用最有搜索量、最能代表水准的两卦做进店样品。
+       这两卦的深度解读会直接写进 articles/，不再走付费墙。 */
+    tier: (prem && !FREE_HEX.has(h.id)) ? 'premium' : 'free',
     mins: Math.max(2, Math.round((h.gua.length + h.tuan.length + h.xiang.length + h.yao.join('').length + plain.length) / 420)),
     quote: h.gua.length > 46 ? h.gua.slice(0, 46) + '…' : h.gua,
     excerpt: h.read.length > 78 ? h.read.slice(0, 78) + '…' : h.read,
@@ -383,6 +400,9 @@ const refArticles = [
 
 const frontAll = [...frontArticles, ...refArticles];
 
+/** 真正需要付费的卦（排除整篇免费的乾坤） */
+const PAID_IDS = PREMIUM_IDS.filter((id) => !FREE_HEX.has(id));
+
 const manifest = {
   meta: {
     book: '周易六十四卦全解',
@@ -405,13 +425,13 @@ const manifest = {
     /* 付费配置摘要：前端据此构建付费卡（价格/交付物/样例）。
        若此字段缺失，前端自动降级为「全站免费」。 */
     premium: {
-      enabled: PREMIUM_IDS.length > 0,
-      ids: PREMIUM_IDS,
-      count: PREMIUM_IDS.length,
+      enabled: PAID_IDS.length > 0,
+      ids: PAID_IDS,
+      count: PAID_IDS.length,
       tiers: [...new Set(Object.values(PREMIUM).map((p) => p.tier))],
       /** 每篇的付费卡数据（不含 depth —— 那部分永不发布） */
       cards: Object.fromEntries(
-        Object.entries(PREMIUM).map(([id, p]) => [id, {
+        Object.entries(PREMIUM).filter(([id]) => PAID_IDS.includes(id)).map(([id, p]) => [id, {
           tier: p.tier,
           // teaser 是给付费卡用的引子（有意公开，不含正文）
           teaser: p.teaser || '',
@@ -531,7 +551,7 @@ console.log(`   爻辞条数    ${ALL.reduce((s, h) => s + h.yao.length, 0)}`);
 console.log(`   正文文件    articles/*.html  ×${totalArticles}`);
 console.log(`   参考典籍    ${REF_STATS.total} 部 · ${REF_STATS.volumes} 卷 · 语料 ${REF_STATS.corpus}`);
 console.log(`   搜索条目    ${searchItems.length}`);
-console.log(`   付费文章    ${PREMIUM_IDS.length} 篇（${PREMIUM_IDS.join(' / ')}）`);
+console.log(`   付费文章    ${PAID_IDS.length} 篇（乾坤整篇免费，已扣除）`);
 if (PREMIUM_IDS.length) {
   const depthChars = Object.values(PREMIUM).reduce((s, p) => s + p.depth.length, 0);
   console.log(`   ↳ 付费正文  ${depthChars} 字【未发布】· 仅 teaser 进静态产物`);

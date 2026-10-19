@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>六十四卦如何生成 — 周易六十四卦</title>
+<meta name="description" content="六十四卦不是六十四句孤立的话，它是一套有排列逻辑的系统。理解生成方式，就理解了它的整体结构。">
+<link rel="canonical" href="https://huangminzhe321-art.github.io/zhouyi/p/basics-64.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="六十四卦如何生成 — 周易六十四卦">
+<meta property="og:description" content="六十四卦不是六十四句孤立的话，它是一套有排列逻辑的系统。理解生成方式，就理解了它的整体结构。">
+<meta property="og:url" content="https://huangminzhe321-art.github.io/zhouyi/p/basics-64.html">
+<meta property="og:site_name" content="周易六十四卦">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="六十四卦如何生成 — 周易六十四卦">
+<meta name="twitter:description" content="六十四卦不是六十四句孤立的话，它是一套有排列逻辑的系统。理解生成方式，就理解了它的整体结构。">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"六十四卦如何生成 — 周易六十四卦","description":"六十四卦不是六十四句孤立的话，它是一套有排列逻辑的系统。理解生成方式，就理解了它的整体结构。","inLanguage":"zh-CN","url":"https://huangminzhe321-art.github.io/zhouyi/p/basics-64.html","mainEntityOfPage":{"@type":"WebPage","@id":"https://huangminzhe321-art.github.io/zhouyi/p/basics-64.html"},"isPartOf":{"@type":"WebSite","name":"周易六十四卦","url":"https://huangminzhe321-art.github.io/zhouyi"},"author":{"@type":"Person","name":"周易六十四卦"},"publisher":{"@type":"Organization","name":"周易六十四卦"},"about":[{"@type":"Thing","name":"六十四卦如何生成"}]}</script>
+<style>
+:root{--paper:#fbf8f1;--paper2:#f3efe7;--ink:#1c1a17;--ink2:#44403a;--ink3:#6b645a;
+--line:#e8e2d8;--line2:#d9d2c6;--red:#a8322a;
+--serif:"Songti SC","Source Han Serif SC","Noto Serif CJK SC",Georgia,serif;
+--sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16.5px/1.9 var(--sans);
+-webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding:0 22px 90px}
+.nav{padding:22px 0 0;font:13px var(--serif);color:var(--ink3);letter-spacing:.03em}
+.nav a{color:var(--ink3);text-decoration:none}
+.nav a:hover{color:var(--red)}
+.nav .sep{margin:0 8px;color:var(--line2)}
+h1{font:700 30px/1.4 var(--serif);margin:26px 0 8px;letter-spacing:.01em}
+.meta{font:13px var(--serif);color:var(--ink3);padding-bottom:22px;
+border-bottom:1px solid var(--line);margin-bottom:30px}
+.meta span{margin-right:14px}
+h2{font:700 20px/1.5 var(--serif);margin:42px 0 14px;padding-left:11px;
+border-left:3px solid var(--red)}
+h3{font:700 16.5px/1.6 var(--serif);margin:26px 0 10px}
+p{margin:0 0 15px;color:var(--ink2)}
+ul,ol{margin:0 0 15px;padding-left:22px;color:var(--ink2)}
+li{margin-bottom:6px}
+strong{color:var(--ink);font-weight:700}
+a{color:var(--red)}
+.scripture{background:var(--paper2);border-left:3px solid var(--line2);
+padding:18px 20px;border-radius:0 8px 8px 0;margin:0 0 22px}
+.scripture .sp-label{display:block;font:11px var(--serif);letter-spacing:.16em;
+color:var(--ink3);margin-bottom:7px}
+.scripture p{margin:0;font-family:var(--serif);font-size:18px;line-height:2;color:var(--ink)}
+.cta{margin:54px 0 0;padding:26px 24px;background:var(--paper2);
+border:1px solid var(--line2);border-radius:11px}
+.cta-tt{font:700 17px var(--serif);margin-bottom:9px}
+.cta-sub{font:14px/1.8 var(--serif);color:var(--ink3);margin:0 0 17px}
+.cta a.go{display:inline-block;padding:12px 24px;background:var(--red);color:#fff;
+border-radius:7px;text-decoration:none;font:700 14.5px var(--serif)}
+.cta a.go:hover{background:#8d2a23}
+footer{margin-top:60px;padding-top:24px;border-top:1px solid var(--line);
+font:13px/1.9 var(--serif);color:var(--ink3)}
+footer a{color:var(--ink3);text-decoration:none;margin-right:16px}
+footer a:hover{color:var(--red)}
+@media(max-width:620px){h1{font-size:25px}h2{font-size:18.5px}body{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="nav"><a href="https://huangminzhe321-art.github.io/zhouyi/">周易六十四卦</a><span class="sep">/</span><a href="https://huangminzhe321-art.github.io/zhouyi/#/toc">目录</a><span class="sep">/</span><span>基础篇 · 体</span></div>
+
+<h1>六十四卦如何生成</h1>
+<div class="meta"><span>约 4 分钟</span><span>基础篇 · 体</span></div>
+
+<article>
+<h2 id="s-gen">怎么来的：8 × 8 = 64</h2>
+<p>把八卦两两相叠——上卦 8 种 × 下卦 8 种 = <strong>64 种组合</strong>。这就是六十四卦的全部。</p>
+<p>其中 8 个是「八纯卦」（上下卦相同）：乾、坤、坎、离、震、艮、巽、兑。</p>
+<p>剩下 56 个是「杂卦」。</p>
+<h2 id="s-order">排列逻辑：非覆即变</h2>
+<p>六十四卦的顺序（通行本《序卦传》的次序）不是随机的，它有一个很强的规律：<strong>两两成对，非覆即变</strong>。</p>
+<ul><li><strong>覆（综卦）</strong>——把卦颠倒过来。如「屯」倒过来是「蒙」，「泰」倒过来是「否」。</li><li><strong>变（错卦）</strong>——把每一爻阴阳互换。如「乾」变「坤」，「坎」变「离」。</li></ul>
+<p>整部《周易》六十四卦，就是 32 对。绝大部分是「覆」的关系，少数几个（如乾/坤、坎/离、颐/大过等）因为颠倒后不变，就用「变」来配对。</p>
+<p><strong>这个规律极其重要</strong>，因为它意味着：你读「泰」的时候，其实在读「泰与否」这一对；你读「既济」的时候，是在读「既济与未济」这一对。</p>
+<p><strong>每一卦都隐含着自己的反面。</strong></p>
+<h2 id="s-two">上下经的划分</h2>
+<p>六十四卦分为两部分：</p>
+<ul><li><strong>上经（1–30 卦）</strong>——从乾、坤开始，到坎、离结束。讲的是<strong>天道</strong>：天地、万物、自然规律。</li><li><strong>下经（31–64 卦）</strong>——从咸、恒开始，到既济、未济结束。讲的是<strong>人事</strong>：人伦、社会、世事变迁。</li></ul>
+<p>为什么这样分？《序卦传》的说法是：有了天地然后有万物，有万物然后有男女，有男女然后有夫妇……</p>
+<p>换句话说：<strong>上经讲「世界是怎样运行的」，下经讲「人在其中该怎样做」</strong>。</p>
+<p>这也解释了为什么下经第一卦是「咸」（感应、男女相感）、第二卦是「恒」（恒久、夫妇之道）——人伦之始。</p>
+<h2 id="s-end">最后一个卦为什么是「未济」</h2>
+<p>第 63 卦是「既济」（已经完成），第 64 卦却是「未济」（尚未完成）。</p>
+<p>为什么用「未完成」收尾？</p>
+<p>这正是《周易》最深的洞见：<strong>没有任何一个终点是真正的终点</strong>。事情完成了，新的问题立刻产生（既济卦本身就充满告诫）；事情没完成，恰恰意味着还有可能。</p>
+<p>所以全书以「未济」作结，不是遗憾，是<strong>开放</strong>。</p>
+<p>读懂了这一点，你就读懂了《周易》对待世界的态度。</p>
+<h2 id="s-kw">关键词</h2>
+<div class="kw-row"><span class="kw">卦序</span><span class="kw">上下经</span><span class="kw">排列逻辑</span></div>
+</article>
+
+<div class="cta">
+  <div class="cta-tt">完整解读需要购买</div>
+  <p class="cta-sub">上面的卦辞、彖传、象传、爻辞、白话与处世应用是免费的。逐爻拆解你所处的阶段、史书中的真实印证、以及判断方法，是付费部分。</p>
+  <a class="go" href="https://huangminzhe321-art.github.io/zhouyi/#/p/basics-64">到站内查看（可登录、可购买）→</a>
+</div>
+
+<footer>
+  <a href="https://huangminzhe321-art.github.io/zhouyi/">首页</a>
+  <a href="https://huangminzhe321-art.github.io/zhouyi/#/toc">全部目录</a>
+  <a href="https://huangminzhe321-art.github.io/zhouyi/#/s">按处境查找</a>
+  <a href="https://huangminzhe321-art.github.io/zhouyi/privacy.html">隐私政策</a>
+  <a href="https://huangminzhe321-art.github.io/zhouyi/terms.html">服务条款</a>
+  <div style="margin-top:12px">本站是对《周易》的研读与解读，不是占卜、算命或预测服务。</div>
+</footer>
+
+</div>
+</body>
+</html>

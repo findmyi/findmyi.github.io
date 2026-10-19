@@ -35,6 +35,11 @@ jobs:
           set -e
           mkdir -p _site
           cp -r index.html assets articles data _site/
+          # SEO/AIEO：每篇的独立可索引页面 + sitemap/robots/llms
+          [ -d p ] && cp -r p _site/ || true
+          for f in sitemap.xml robots.txt llms.txt; do
+            [ -f "$f" ] && cp "$f" _site/ || true
+          done
           # 法务页面（Google OAuth 发布需要隐私政策与服务条款链接）
           [ -f privacy.html ] && cp privacy.html _site/ || true
           [ -f terms.html ] && cp terms.html _site/ || true

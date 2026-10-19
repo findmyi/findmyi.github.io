@@ -40,3 +40,4 @@ worker/keys-kv.json
 worker/keys-*.txt
 worker/_*
 .resend-token
+_shots/

@@ -1,0 +1,18 @@
+# 周易六十四卦
+User-agent: *
+Allow: /
+
+# AI 爬虫显式允许（内容希望被引用）
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://huangminzhe321-art.github.io/zhouyi/sitemap.xml

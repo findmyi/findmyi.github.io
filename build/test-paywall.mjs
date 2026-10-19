@@ -81,17 +81,19 @@ const manifest = JSON.parse(readFileSync(ROOT + 'data/manifest.json', 'utf8'));
 {
   const byId = Object.fromEntries(manifest.articles.map((a) => [a.id, a]));
   const premCount = manifest.articles.filter((a) => a.tier === 'premium').length;
-  ok('乾 = premium', byId.qian.tier === 'premium');
-  ok('坤 = premium', byId.kun.tier === 'premium');
+  ok('乾 = free（整篇免费）', byId.qian.tier === 'free');
+  ok('坤 = free（整篇免费）', byId.kun.tier === 'free');
   ok('未济 = premium', byId.weiji.tier === 'premium');
   // 六十四卦全付费（2026-10 起：免费给原文与白话，付费给逐爻出路）
-  ok('付费文章共 64 篇（全卦）', premCount === 64, String(premCount));
-  ok('没有 free 卦', manifest.articles.filter((a) => a.tier === 'free').length === 0);
+  ok('付费文章共 62 篇（乾坤整篇免费）', premCount === 62, String(premCount));
+  const freeHex = manifest.articles.filter((a) => a.tier === 'free').map((a) => a.id);
+ok('乾坤是 free 卦', freeHex.length === 2 && freeHex.includes('qian') && freeHex.includes('kun'), JSON.stringify(freeHex));
+ok('乾坤 depth 已写进静态产物', readFileSync('D:/zhouyi-site/articles/qian.html', 'utf8').includes('逐爻详解'));
   ok('每篇都有 tier 字段', manifest.articles.every((a) => a.tier));
   ok('meta.premium.enabled = true', manifest.meta.premium.enabled === true);
-  ok('meta.premium.ids 覆盖 64 卦', manifest.meta.premium.ids.length === 64);
-  ok('付费卡带 includes', (manifest.meta.premium.cards.qian.includes || []).length >= 3);
-  ok('付费卡带 sample', !!manifest.meta.premium.cards.qian.sample);
+  ok('meta.premium.ids 覆盖 62 卦', manifest.meta.premium.ids.length === 62);
+  ok('付费卡带 includes', (manifest.meta.premium.cards.zhun.includes || []).length >= 3);
+  ok('付费卡带 sample', !!manifest.meta.premium.cards.zhun.sample);
   ok('每篇都有 includes 与 sample',
     manifest.meta.premium.ids.every((id) => {
       const c = manifest.meta.premium.cards[id];
@@ -109,22 +111,26 @@ console.log('\n【5】安全保证：付费正文不在静态产物中（核心�
   const kunHtml = read('articles/kun.html');
   const weijiHtml = read('articles/weiji.html');
   const search = read('data/search.json');
-  const allStatic = qianHtml + kunHtml + weijiHtml + search + JSON.stringify(manifest);
+  // 乾坤整篇免费，其 HTML 天然包含 depth 句子，且与付费卦共享史料引用，
+  // 若计入 allStatic 会把「共享史料」误判成泄漏。所以只扫付费卦的代表 + 索引 + manifest。
+  const allStatic = weijiHtml + search + JSON.stringify(manifest);
 
   // depth 里的独特句子 —— 若出现在静态文件里就是泄漏
   const leaks = [
-    ['乾 · 开头处境', '我认识一个人，三十四岁'],
-    ['乾 · 判词', '别出声'],
-    ['坤 · 反差点', '黄裳是下衣'],
-    ['坤 · 判词', '姿态永远比位置低半格'],
+    ['乾 · 开篇处境', '你刚进一个新环境，什么都不会'],
+    ['乾 · 判断句', '别出声'],
+    ['坤 · 开篇处境', '你在一个位置上干了六年'],
   ];
   for (const [label, needle] of leaks) {
-    ok(`articles/qian.html 不含「${label}」`, !qianHtml.includes(needle));
+    // 乾坤已整篇免费，这些句子【应当】出现在对应文件里
+    const host = label.startsWith('乾') ? qianHtml : kunHtml;
+    ok(`articles/${label.startsWith('乾') ? 'qian' : 'kun'}.html 含「${label}」`, host.includes(needle));
+    // 但搜索索引仍然只收免费区，不该混入 depth
     ok(`data/search.json 不含「${label}」`, !search.includes(needle));
   }
-  ok('articles/qian.html 含付费标记', qianHtml.includes('data-premium="qian"'));
-  ok('articles/qian.html 含 teaser 文本', qianHtml.includes('上面讲的是乾卦说了什么'));
-  ok('坤只发布 teaser', kunHtml.includes('data-premium="kun"'));
+  ok('articles/qian.html 不含付费标记（已免费）', !qianHtml.includes('data-premium="qian"'));
+  ok('articles/qian.html 含完整逐爻详解', qianHtml.includes('逐爻详解'));
+  ok('坤也发布完整内容', kunHtml.includes('逐爻详解'));
   ok('未济只发布 teaser', weijiHtml.includes('data-premium="weiji"'));
 
   // manifest 本身也不能带 depth 正文。
@@ -140,7 +146,7 @@ console.log('\n【5】安全保证：付费正文不在静态产物中（核心�
       !JSON.stringify(manifest).includes(s));
   }
   ok('sample 有意公开（可出现在 manifest）',
-    JSON.stringify(manifest).includes('样') || !!manifest.meta.premium.cards.qian.sample.quote);
+    JSON.stringify(manifest).includes('样') || !!manifest.meta.premium.cards.zhun.sample.quote);
 
   // 直接对照源文件：depth 文本不得出现在任何静态产物中。
   // 例外：sample（付费卡样例）与 teaser（引子）是【有意公开】的。
@@ -151,7 +157,9 @@ console.log('\n【5】安全保证：付费正文不在静态产物中（核心�
   const hexData = await import('file:///D:/zhouyi-site/build/hexdata.mjs');
   let worstLeak = null;
   let scanned = 0;
+  const FREE_PUBLIC = new Set(['qian', 'kun']);   // 乾坤整篇免费，不参与泄漏扫描
   for (const [id, p] of Object.entries(premium.PREMIUM)) {
+    if (FREE_PUBLIC.has(id)) continue;
     const publicText = (p.teaser || '') + (p.sample ? JSON.stringify(p.sample) : '');
     // 该卦免费区已公开的经文（爻辞 + 象传 + 卦辞 + 彖传 + 象传）
     const freeScripture = hexData.scriptureOf(id);
@@ -170,7 +178,7 @@ console.log('\n【5】安全保证：付费正文不在静态产物中（核心�
     }
     if (worstLeak) break;
   }
-  ok(`全量扫描：64 篇 depth 独有的 ${scanned} 个句子均不在静态产物中`, !worstLeak, worstLeak || '');
+  ok(`全量扫描：62 篇付费卦 depth 独有的 ${scanned} 个句子均不在静态产物中`, !worstLeak, worstLeak || '');
 }
 
 console.log('\n【6】优雅降级：无 premium 信息 = 全站免费');
@@ -212,7 +220,7 @@ console.log('\n【6】优雅降级：无 premium 信息 = 全站免费');
   const getTiers = () => store;
 
   const E3 = makeEntitlement(manifest, getTiers);
-  ok('正式 manifest：未授权时乾被锁', !E3.isUnlocked('qian'));
+  ok('正式 manifest：未授权时屯被锁', !E3.isUnlocked('zhun'));
   ok('正式 manifest：未授权时屯也被锁（全卦付费）', !E3.isUnlocked('zhun'));
 
   store = ['PREM'];
@@ -228,7 +236,7 @@ console.log('\n【6】优雅降级：无 premium 信息 = 全站免费');
   ok('正式 manifest：PREM 覆盖 QK00 的全部范围', E3.isUnlocked('weiji') && E3.isUnlocked('qian'));
 
   store = [];
-  ok('清除授权后重新上锁', !E3.isUnlocked('qian'));
+  ok('清除授权后重新上锁', !E3.isUnlocked('zhun'));
 }
 
 console.log(`\n${fail === 0 ? '✅' : '❌'}  ${pass} 通过 · ${fail} 失败\n`);
