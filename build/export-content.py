@@ -50,6 +50,7 @@ if not blocks:
     sys.exit(1)
 
 # 转成 KV bulk 格式
+# ⚠️ wrangler kv bulk put 要求的是【JSON 数组】，不是 NDJSON（一行一条）。
 rows = []
 total = 0
 for hid, html in blocks.items():
@@ -57,13 +58,13 @@ for hid, html in blocks.items():
     total += len(html)
     rows.append({'key': 'content:' + hid, 'value': html})
 
-OUT.write_text('\n'.join(json.dumps(r, ensure_ascii=False) for r in rows),
-               encoding='utf-8')
+OUT.write_text(json.dumps(rows, ensure_ascii=False, indent=0), encoding='utf-8')
 
 print('写出 ' + str(OUT))
 print('  ' + str(len(rows)) + ' 条，合计 ' + f'{total:,}' + ' 字符')
 print('  文件大小 ' + f'{OUT.stat().st_size / 1024 / 1024:.2f}' + ' MB')
+print('  格式：JSON 数组（wrangler bulk put 要求）')
 print()
 print('下一步：')
-print('  cd D:\\zhouyi-site')
-print('  wrangler kv bulk put --binding=KEYS worker/content-kv.json --remote')
+print('  cd D:\\zhouyi-site\\worker')
+print('  wrangler kv bulk put --binding=KEYS content-kv.json --remote')

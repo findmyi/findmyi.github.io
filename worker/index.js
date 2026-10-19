@@ -75,9 +75,15 @@ function fnv1a(s) {
 function validateKey(raw) {
   const s = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (s.length !== KEY_LEN || s.slice(0, 2) !== 'ZY') return null;
-  const body = s.slice(0, KEY_LEN - 1);
+
+  // ⚠️ 关键：checksum 的输入必须是【带连字符】的 ZY-PREM-XXXX-XXXX，
+  //    与 assets/license.js 的 checksum(body) 完全一致。
+  //    早前这里用了无连字符的 s.slice(0,14)，导致和前端算出来的码对不上。
+  const pretty = prettyKey(s);
+  const body = pretty.slice(0, pretty.length - 2);   // 去掉末尾的 "-C"
   if (s.slice(KEY_LEN - 1) !== ALPHABET[fnv1a(body) % ALPHABET.length]) return null;
-  return { key: s, tier: s.slice(2, 6), pretty: prettyKey(s) };
+
+  return { key: s, tier: s.slice(2, 6), pretty };
 }
 
 function prettyKey(s) {
@@ -88,12 +94,15 @@ function prettyKey(s) {
 /** 生成一个新授权码（管理员用） */
 function genKey(tier) {
   const t = String(tier || 'PREM').toUpperCase().slice(0, 4).padEnd(4, '0');
-  let r = '';
   const buf = new Uint8Array(8);
   crypto.getRandomValues(buf);
-  for (let i = 0; i < 8; i++) r += ALPHABET[buf[i] % ALPHABET.length];
-  const body = 'ZY' + t + r;
-  return body + ALPHABET[fnv1a(body) % ALPHABET.length];
+  let r1 = '', r2 = '';
+  for (let i = 0; i < 4; i++) r1 += ALPHABET[buf[i] % ALPHABET.length];
+  for (let i = 4; i < 8; i++) r2 += ALPHABET[buf[i] % ALPHABET.length];
+
+  // 与 validateKey / license.js 一致：checksum 吃带连字符的 body
+  const body = ['ZY', t, r1, r2].join('-');
+  return (body + '-' + ALPHABET[fnv1a(body) % ALPHABET.length]).replace(/-/g, '');
 }
 
 function json(obj, status = 200) {
