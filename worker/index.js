@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    周易六十四卦 · 授权与内容服务
    Cloudflare Worker + KV
    --------------------------------------------------------------------------
@@ -360,6 +360,134 @@ document.getElementById('pay').onclick = async function(){
   });
 }
 
+/** 管理后台：核对到账 → 一键放权 */
+function adminPage() {
+  const html = `<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>订单确认 · 管理</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f6f3ec;color:#1c1a17;
+font:15px/1.7 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:34px 20px 80px}
+h1{font-size:20px;margin:0 0 6px}
+.sub{font-size:13px;color:#6b645a;margin:0 0 26px}
+.card{background:#fffdf9;border:1px solid #e0d8c8;border-radius:11px;padding:22px;margin-bottom:20px}
+label{display:block;font-size:12.5px;color:#6b645a;margin-bottom:7px}
+input{width:100%;padding:11px 13px;border:1px solid #d9d2c6;border-radius:7px;
+font:inherit;font-size:14px;background:#fff}
+button{margin-top:13px;padding:11px 22px;border:0;border-radius:7px;
+background:#a8322a;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.55;cursor:default}
+button.ghost{background:transparent;color:#44403a;border:1px solid #d9d2c6}
+.row{border:1px solid #e0d8c8;border-radius:9px;padding:15px 17px;margin-bottom:12px;background:#fffdf9}
+.row.claimed{border-color:#d9a441;background:#fffbf0}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.amt{font-size:19px;font-weight:700;color:#a8322a}
+.meta{font-size:12.5px;color:#6b645a;margin-top:6px;line-height:1.8;word-break:break-all}
+.no{font-family:ui-monospace,monospace;font-size:12.5px;color:#1c1a17;background:#f3efe7;
+padding:2px 7px;border-radius:4px}
+.badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;
+background:#f3efe7;color:#6b645a;margin-left:8px}
+.badge.c{background:#d9a441;color:#fff}
+.ok{color:#2f7a4f;font-weight:700}
+.err{color:#a8322a;font-weight:700}
+.empty{text-align:center;color:#9a938a;padding:34px 0;font-size:14px}
+</style></head>
+<body><div class="wrap">
+<h1>订单确认</h1>
+<p class="sub">用户点了「我已完成付款」的订单会出现在下面。核对微信/支付宝到账后，点「确认收款」即自动开通。</p>
+
+<div class="card" id="loginCard">
+  <label>管理员密钥（ADMIN_TOKEN）</label>
+  <input id="tk" type="password" placeholder="粘贴你的 ADMIN_TOKEN" autocomplete="off">
+  <button id="go">进入</button>
+</div>
+
+<div class="card" id="listCard" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <b id="cnt">待确认 0 单</b>
+    <button class="ghost" id="refresh" style="margin:0;padding:7px 15px;font-size:13px">刷新</button>
+  </div>
+  <div id="list"></div>
+</div>
+</div>
+<script>
+let TK = '';
+const $ = (id) => document.getElementById(id);
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+async function api(payload){
+  const r = await fetch('/', {method:'POST',headers:{'content-type':'application/json'},
+    body: JSON.stringify(payload)});
+  return r.json();
+}
+
+function fmt(ts){
+  if(!ts) return '—';
+  const d = new Date(ts);
+  const p = (n)=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+
+async function load(){
+  const r = await api({action:'pending', token: TK});
+  if(!r.ok){ $('list').innerHTML = '<div class="empty err">密钥不对或接口出错</div>'; return; }
+  const orders = r.orders || [];
+  $('cnt').textContent = '待确认 ' + orders.filter(o=>o.status==='claimed').length + ' 单 · 共 ' + orders.length + ' 条';
+
+  if(!orders.length){ $('list').innerHTML = '<div class="empty">暂无待确认订单</div>'; return; }
+
+  $('list').innerHTML = orders.map(function(o){
+    const isClaimed = o.status === 'claimed';
+    return '<div class="row'+(isClaimed?' claimed':'')+'">'
+      + '<div class="top"><div>'
+      + '<div class="amt">￥' + (o.amount/100).toFixed(0) + ' <span class="badge'+(isClaimed?' c':'')+'">'
+      + (isClaimed?'用户已点已付款':'未付款') + '</span></div>'
+      + '<div class="meta">订单号 <span class="no">' + esc(o.no) + '</span><br>'
+      + '邮箱 ' + esc(o.email || '(无)') + '<br>'
+      + '档位 ' + esc(o.tier) + '<br>'
+      + '下单 ' + fmt(o.at) + (o.claimedAt ? ' · 声明付款 ' + fmt(o.claimedAt) : '')
+      + (o.note ? '<br>备注 ' + esc(o.note) : '')
+      + '</div></div>'
+      + '<div><button data-confirm="' + esc(o.no) + '" style="margin-top:0">确认收款并开通</button></div>'
+      + '</div></div>';
+  }).join('');
+
+  document.querySelectorAll('[data-confirm]').forEach(function(btn){
+    btn.onclick = async function(){
+      const no = btn.dataset.confirm;
+      if(!confirm('确认已收到这笔款？\\n订单号 ' + no + '\\n\\n确认后会立刻为该账号开通。')) return;
+      btn.disabled = true; btn.textContent = '处理中…';
+      const r2 = await api({action:'confirm', token: TK, outTradeNo: no});
+      if(r2.ok){ btn.textContent = '✓ 已开通'; btn.className='ok'; }
+      else { btn.disabled=false; btn.textContent='失败，重试'; }
+      setTimeout(load, 900);
+    };
+  });
+}
+
+$('go').onclick = function(){
+  TK = $('tk').value.trim();
+  if(!TK) return;
+  try{ localStorage.setItem('zy.admin', TK); }catch(e){}
+  $('loginCard').style.display='none';
+  $('listCard').style.display='block';
+  load();
+};
+$('refresh').onclick = load;
+
+(function(){
+  try{ const s = localStorage.getItem('zy.admin'); if(s){ $('tk').value=s; TK=s;
+    $('loginCard').style.display='none'; $('listCard').style.display='block'; load(); } }catch(e){}
+})();
+</script></body></html>`;
+  return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -375,6 +503,11 @@ export default {
     /* ================= mock 收银台页面（仅开发用） ================= */
     if (url.pathname === '/mock-pay' && request.method === 'GET') {
       return mockPayPage(url, env);
+    }
+
+    /* ================= 管理后台（人工确认订单） ================= */
+    if (url.pathname === '/admin' && request.method === 'GET') {
+      return adminPage();
     }
 
     /* ================= Google 登录 ================= */
@@ -451,6 +584,62 @@ export default {
       if (rec.status === 'paid') return json({ ok: true, status: 'paid', already: true });
       const filled = await markPaidAndIssue(env, no, 'MOCK');
       return json({ ok: true, status: 'paid', key: filled.key });
+    }
+
+    /* ================= 用户点了「我已完成付款」 ================= */
+    if (action === 'claim-paid') {
+      const no = String(body.outTradeNo || '').trim();
+      if (!/^[A-Za-z0-9_-]{6,40}$/.test(no)) return json({ ok: false, reason: 'badno' });
+      const rec = await getOrder(env, no);
+      if (!rec) return json({ ok: false, reason: 'notfound' });
+      if (rec.status === 'paid') return json({ ok: true, status: 'paid' });
+
+      rec.status = 'claimed';          // 待人工核对
+      rec.claimedAt = Date.now();
+      rec.payerNote = String(body.note || '').slice(0, 120);   // 用户填的付款备注
+      await putOrder(env, no, rec);
+      return json({ ok: true, status: 'claimed' });
+    }
+
+    /* ================= 管理员：看待确认订单 ================= */
+    if (action === 'pending') {
+      if (!env.ADMIN_TOKEN || body.token !== env.ADMIN_TOKEN) {
+        return json({ ok: false, reason: 'forbidden' }, 403);
+      }
+      const list = await env.KEYS.list({ prefix: 'order:', limit: 200 });
+      const out = [];
+      for (const k of list.keys) {
+        const raw = await env.KEYS.get(k.name);
+        if (!raw) continue;
+        let rec;
+        try { rec = JSON.parse(raw); } catch { continue; }
+        if (rec.status === 'claimed' || rec.status === 'pending') {
+          out.push({
+            no: k.name.replace('order:', ''),
+            status: rec.status,
+            tier: rec.tier,
+            amount: rec.amount,
+            email: rec.email || '',
+            at: rec.at,
+            claimedAt: rec.claimedAt || null,
+            note: rec.payerNote || '',
+          });
+        }
+      }
+      out.sort((a, b) => (b.claimedAt || b.at) - (a.claimedAt || a.at));
+      return json({ ok: true, count: out.length, orders: out });
+    }
+
+    /* ================= 管理员：确认收款并放权 ================= */
+    if (action === 'confirm') {
+      if (!env.ADMIN_TOKEN || body.token !== env.ADMIN_TOKEN) {
+        return json({ ok: false, reason: 'forbidden' }, 403);
+      }
+      const no = String(body.outTradeNo || '').trim();
+      if (!/^[A-Za-z0-9_-]{6,40}$/.test(no)) return json({ ok: false, reason: 'badno' });
+      const rec = await markPaidAndIssue(env, no, 'MANUAL');
+      if (!rec || rec.ok === false) return json({ ok: false, reason: 'notfound' });
+      return json({ ok: true, status: 'paid', email: rec.email, key: rec.key });
     }
 
     /* ================= 管理员接口 ================= */

@@ -854,20 +854,100 @@
 
     const yuan = (d.amount / 100).toFixed(0);
     const payUrl = absPayUrl(d.payUrl);
+    const qr = (window.Payment && window.Payment.payQr) ? window.Payment.payQr() : {};
+    const note = (window.Payment && window.Payment.payNote) ? window.Payment.payNote() : '';
+    const hasQr = !!(qr.wechat || qr.alipay);
+
+    // 个人收款码模式：显示二维码 + 「我已完成付款」
+    // 支付商模式：显示支付商二维码或跳转按钮
+    const qrBlock = hasQr
+      ? [
+        '<div class="pw-qr-tabs">',
+        qr.wechat ? '<button type="button" class="pw-qr-tab is-on" data-qr="wechat">微信</button>' : '',
+        qr.alipay ? '<button type="button" class="pw-qr-tab' + (qr.wechat ? '' : ' is-on') + '" data-qr="alipay">支付宝</button>' : '',
+        '</div>',
+        '<div class="pw-qr-show">',
+        qr.wechat ? '<img class="pw-qr-img" data-qr-img="wechat" alt="微信收款码" src="' + esc(qr.wechat) + '">' : '',
+        qr.alipay ? '<img class="pw-qr-img' + (qr.wechat ? ' is-off' : '') + '" data-qr-img="alipay" alt="支付宝收款码" src="' + esc(qr.alipay) + '">' : '',
+        '</div>',
+        '<div class="pw-qr-amt">应付 <b>￥' + esc(yuan) + '</b></div>',
+        '<div class="pw-qr-ordno">订单号 <code id="pwOrdNo">' + esc(d.outTradeNo) + '</code></div>',
+        '<button type="button" class="pw-qr-copy" id="pwCopyNo">复制订单号</button>',
+        note ? '<div class="pw-pay-tip">' + esc(note) + '</div>' : '',
+        '<button type="button" class="pw-qr-done" id="pwClaimPaid">我已完成付款</button>',
+      ].join('')
+      : '';
 
     showPayModal([
       '<div class="pw-pay-tt">' + esc((tier && tier.name) || '终身买断') + '</div>',
       '<div class="pw-pay-amt"><small>￥</small>' + esc(yuan) + '</div>',
-      d.qrCode
+      qrBlock,
+      !hasQr && d.qrCode
         ? '<div class="pw-pay-qr"><img alt="支付二维码" src="' + esc(d.qrCode) + '"></div>' +
           '<div class="pw-pay-tip">用微信或支付宝扫码支付</div>'
         : '',
-      payUrl
+      !hasQr && payUrl
         ? '<a class="pw-pay-go" href="' + esc(payUrl) + '" target="_blank" rel="noopener">去支付 ￥' + esc(yuan) + ' →</a>'
         : '',
-      '<div class="pw-pay-status" id="pwPayStatus">等待支付…（付款后本页会自动解锁）</div>',
-      '<div class="pw-pay-orderno">订单号 ' + esc(d.outTradeNo) + '</div>',
+      '<div class="pw-pay-status" id="pwPayStatus">' +
+        (hasQr ? '付款后点上面的按钮，我们会尽快为你开通。' : '等待支付…（付款后本页会自动解锁）') +
+      '</div>',
+      hasQr ? '' : '<div class="pw-pay-orderno">订单号 ' + esc(d.outTradeNo) + '</div>',
     ].join(''));
+
+    // 微信 / 支付宝 切换
+    if (hasQr) {
+      $$('[data-qr]').forEach((btn) => {
+        btn.onclick = () => {
+          $$('[data-qr]').forEach((b) => b.classList.toggle('is-on', b === btn));
+          $$('[data-qr-img]').forEach((img) => {
+            img.classList.toggle('is-off', img.dataset.qrImg !== btn.dataset.qr);
+          });
+        };
+      });
+
+      const copyBtn = document.getElementById('pwCopyNo');
+      if (copyBtn) {
+        copyBtn.onclick = async () => {
+          try {
+            await navigator.clipboard.writeText(d.outTradeNo);
+            copyBtn.textContent = '已复制 ✓';
+            setTimeout(() => { copyBtn.textContent = '复制订单号'; }, 1800);
+          } catch {
+            copyBtn.textContent = '复制失败，请手抄';
+          }
+        };
+      }
+
+      const claimBtn = document.getElementById('pwClaimPaid');
+      if (claimBtn) {
+        claimBtn.onclick = async () => {
+          claimBtn.disabled = true;
+          claimBtn.textContent = '正在提交…';
+          const st = document.getElementById('pwPayStatus');
+          try {
+            const r = await fetch(w, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ action: 'claim-paid', outTradeNo: d.outTradeNo }),
+            });
+            const res = await r.json();
+            if (res.ok) {
+              claimBtn.textContent = '已提交，等待确认';
+              if (st) st.textContent = '我们已收到你的付款通知，核对到账后会自动解锁（通常几分钟内）。这个页面可以留着，也可以先关掉。';
+            } else {
+              claimBtn.disabled = false;
+              claimBtn.textContent = '我已完成付款';
+              if (st) st.textContent = '提交失败：' + (res.reason || '未知原因') + '，请稍后重试。';
+            }
+          } catch {
+            claimBtn.disabled = false;
+            claimBtn.textContent = '我已完成付款';
+            if (st) st.textContent = '网络不通，请稍后重试。';
+          }
+        };
+      }
+    }
 
     pollOrder(d.outTradeNo);
   }
@@ -910,6 +990,9 @@
           toast('支付成功，已解锁');
           const art = byId(currentId);
           if (art) showArticle(art);
+        } else if (d.status === 'claimed') {
+          const s2 = document.getElementById('pwPayStatus');
+          if (s2) s2.textContent = '付款通知已收到，正在核对到账（通常几分钟内）。';
         } else if (d.status === 'failed') {
           clearInterval(payPollTimer); payPollTimer = null;
           if (s) s.textContent = '订单已失败，请重新下单。';
