@@ -1680,27 +1680,28 @@
 
   /* ---------- 顶部账号入口 ---------- */
   function renderAccountBtn() {
-    const host = $('#acctSlot');
-    if (!host) return;
+    // 两个位置：正文页顶栏 + 封面页右上角
+    const hosts = [$('#acctSlot'), $('#acctSlotHero')].filter(Boolean);
+    if (!hosts.length) return;
 
     const logged = window.AuthUI && window.AuthUI.isLoggedIn();
     const cached = window.AuthUI && window.AuthUI.cached;
     const bought = !!(cached && cached.tiers && cached.tiers.length);
 
-    if (!logged) {
-      host.innerHTML = '<button class="acct-btn" data-acct="login">登录</button>';
-    } else {
-      const label = bought ? '已购 · 我的' : '我的';
-      host.innerHTML = '<button class="acct-btn is-in" data-acct="menu">' +
-        '<span>' + esc(label) + '</span></button>';
-    }
+    const html = logged
+      ? '<button class="acct-btn is-in" data-acct="menu"><span>' +
+        esc(bought ? '已购 · 我的' : '我的') + '</span></button>'
+      : '<button class="acct-btn" data-acct="login">登录</button>';
 
-    const btn = host.querySelector('[data-acct]');
-    if (!btn) return;
-    btn.onclick = () => {
-      if (btn.dataset.acct === 'login') { window.AuthUI.open('login'); return; }
-      openAccountMenu();
-    };
+    hosts.forEach((host) => {
+      host.innerHTML = html;
+      const btn = host.querySelector('[data-acct]');
+      if (!btn) return;
+      btn.onclick = () => {
+        if (btn.dataset.acct === 'login') { window.AuthUI.open('login'); return; }
+        openAccountMenu();
+      };
+    });
   }
 
   function openAccountMenu() {
