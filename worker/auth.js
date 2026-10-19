@@ -327,10 +327,20 @@ export async function grantTier(env, email, tier) {
    Google OAuth
    ========================================================================== */
 
-export function googleAuthUrl(env, state) {
+/**
+ * 生成 Google 授权地址。
+ * @param {string} origin Worker 自己的 origin（必须有，不能用 SITE_URL）
+ *
+ * ⚠️ redirect_uri 必须指向 Worker（本服务），不能指向静态站点：
+ *    只有 Worker 持有 GOOGLE_CLIENT_SECRET，能完成 code → token 的交换。
+ *    这个值还必须和 Google 控制台里登记的「已获授权的重定向 URI」完全一致。
+ */
+export function googleAuthUrl(env, state, origin) {
   const cid = env.GOOGLE_CLIENT_ID;
   if (!cid) return null;
-  const redirect = (env.SITE_URL || '').replace(/\/$/, '') + '/auth/google/callback';
+  const base = String(origin || '').replace(/\/$/, '');
+  if (!base) return null;
+  const redirect = base + '/auth/google/callback';
   const p = new URLSearchParams({
     client_id: cid,
     redirect_uri: redirect,
@@ -344,12 +354,14 @@ export function googleAuthUrl(env, state) {
 }
 
 /** 用 code 换用户信息 */
-export async function googleExchange(env, code) {
+export async function googleExchange(env, code, origin) {
   const cid = env.GOOGLE_CLIENT_ID;
   const csec = env.GOOGLE_CLIENT_SECRET;
   if (!cid || !csec) return { ok: false, reason: 'google-not-configured' };
 
-  const redirect = (env.SITE_URL || '').replace(/\/$/, '') + '/auth/google/callback';
+  const base = String(origin || '').replace(/\/$/, '');
+  if (!base) return { ok: false, reason: 'no-origin' };
+  const redirect = base + '/auth/google/callback';
 
   let tok;
   try {

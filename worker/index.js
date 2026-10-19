@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    周易六十四卦 · 授权与内容服务
    Cloudflare Worker + KV
    --------------------------------------------------------------------------
@@ -379,7 +379,7 @@ export default {
 
     /* ================= Google 登录 ================= */
     if (url.pathname === '/auth/google' && request.method === 'GET') {
-      const u = auth.googleAuthUrl(env, url.searchParams.get('state') || '');
+      const u = auth.googleAuthUrl(env, url.searchParams.get('state') || '', url.origin);
       if (!u) return new Response('Google 登录未配置（缺 GOOGLE_CLIENT_ID）', { status: 503, headers: CORS });
       return Response.redirect(u, 302);
     }
@@ -389,7 +389,7 @@ export default {
       const site = (env.SITE_URL || '').replace(/\/$/, '');
       if (!code) return Response.redirect(site + '/#/?auth=denied', 302);
 
-      const r = await auth.googleExchange(env, code);
+      const r = await auth.googleExchange(env, code, url.origin);
       if (!r.ok) {
         return Response.redirect(site + '/#/?auth=err&r=' + encodeURIComponent(r.reason || ''), 302);
       }
