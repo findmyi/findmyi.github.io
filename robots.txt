@@ -15,4 +15,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://huangminzhe321-art.github.io/zhouyi/sitemap.xml
+Sitemap: https://zhouyiccc2026.github.io/zhouyi/sitemap.xml
