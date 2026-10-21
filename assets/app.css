@@ -1364,195 +1364,7 @@ img { max-width: 100%; display: block; }
   .quiz-packs { grid-template-columns: 1fr; }
 }
 
-/* ==========================================================================
-   首屏：免费卦入口 + 高频动作
-   ========================================================================== */
 
-/* 乾坤两卦入口 —— 两个都能点 */
-.hero-free {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 9px;
-  margin: 14px 0 20px;
-  font-family: var(--serif); font-size: 14px;
-}
-.hero-free a {
-  display: inline-block;
-  padding: 5px 15px;
-  border: 1px solid var(--cinnabar);
-  border-radius: 99px;
-  color: var(--cinnabar);
-  text-decoration: none;
-  font-weight: 700;
-  transition: background .16s, color .16s;
-}
-.hero-free a:hover { background: var(--cinnabar); color: #fff; }
-.hero-free span { color: var(--line-2); }
-.hero-free em {
-  font-style: normal;
-  font-size: 12.5px;
-  color: var(--ink-3);
-  letter-spacing: .02em;
-}
-
-/* 高频动作：两个按钮做成并排大卡，视觉权重更高 */
-.hero-actions {
-  display: flex; gap: 12px; flex-wrap: wrap;
-  margin-top: 6px;
-}
-.hero-actions .btn {
-  flex: 1 1 auto;
-  min-width: 190px;
-  padding: 16px 26px;
-  font-size: 15.5px;
-  text-align: center;
-  border-radius: 9px;
-  transition: transform .14s, box-shadow .2s, background .18s, border-color .18s;
-}
-.hero-actions .btn.solid {
-  box-shadow: 0 14px 30px -18px rgba(0,0,0,.55);
-}
-.hero-actions .btn.solid:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 40px -20px rgba(0,0,0,.6);
-}
-.hero-actions .btn.outline:hover {
-  transform: translateY(-2px);
-  border-color: var(--cinnabar);
-  color: var(--cinnabar);
-}
-
-/* 滚动字幕改成链接 */
-.marquee-track a {
-  color: inherit;
-  text-decoration: none;
-  transition: color .16s;
-}
-.marquee-track a:hover { color: var(--cinnabar); }
-
-@media (max-width: 620px) {
-  .hero-actions .btn { min-width: 0; flex: 1 1 100%; padding: 14px 18px; font-size: 14.5px; }
-  .hero-free { font-size: 13px; }
-  .hero-free a { padding: 4px 12px; }
-}
-
-/* ==========================================================================
-   首屏结果样例（替代原来的三张内容票）
-   ========================================================================== */
-.hero-sample {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-}
-
-.hs-frame {
-  width: 100%;
-  background: var(--card, #fffdf9);
-  border: 1px solid var(--line-2);
-  border-radius: 13px;
-  padding: 24px 26px 20px;
-  box-shadow: 0 26px 60px -40px rgba(0,0,0,.4);
-}
-
-.hs-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  padding-bottom: 13px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--line);
-}
-.hs-eyebrow {
-  font-family: var(--serif);
-  font-size: 11px;
-  letter-spacing: .14em;
-  color: var(--ink-4, #9a938a);
-}
-.hs-src {
-  font-family: var(--serif);
-  font-size: 12px;
-  color: var(--cinnabar);
-  letter-spacing: .06em;
-  white-space: nowrap;
-}
-
-.hs-verdict {
-  font-family: var(--serif);
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.4;
-  color: var(--ink);
-  margin-bottom: 18px;
-}
-
-.hs-block { margin-bottom: 14px; }
-.hs-block span {
-  display: block;
-  font-family: var(--serif);
-  font-size: 10.5px;
-  letter-spacing: .16em;
-  color: var(--ink-3);
-  margin-bottom: 5px;
-}
-.hs-block p {
-  font-family: var(--serif);
-  font-size: 14px;
-  line-height: 1.9;
-  color: var(--ink-2);
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.hs-block.is-do {
-  border-left: 2px solid var(--cinnabar);
-  padding-left: 13px;
-  padding-top: 8px; padding-bottom: 8px; padding-right: 10px;
-  background: color-mix(in srgb, var(--cinnabar) 3%, transparent);
-  border-radius: 0 6px 6px 0;
-}
-.hs-block.is-exc {
-  border-left: 2px solid #d9a441;
-  padding-left: 13px;
-}
-.hs-block.is-exc p { color: var(--ink-3); font-size: 13px; -webkit-line-clamp: 2; }
-
-.hs-foot {
-  margin-top: 18px;
-  padding-top: 15px;
-  border-top: 1px dashed var(--line);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.hs-go {
-  font-family: var(--serif);
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--cinnabar);
-  text-decoration: none;
-}
-.hs-go:hover { text-decoration: underline; }
-.hs-note {
-  font-family: var(--serif);
-  font-size: 11.5px;
-  color: var(--ink-4, #9a938a);
-}
-
-@media (max-width: 980px) {
-  .hero-sample { margin-top: 26px; }
-  .hs-verdict { font-size: 21px; }
-}
-@media (max-width: 620px) {
-  .hs-frame { padding: 19px 17px 16px; }
-  .hs-verdict { font-size: 19px; }
-  .hs-block p { font-size: 13.5px; -webkit-line-clamp: 4; }
-  .hs-block.is-exc p { -webkit-line-clamp: 3; }
-}
 
 /* ==========================================================================
    登录墙
@@ -1617,4 +1429,193 @@ img { max-width: 100%; display: block; }
   .wall { padding: 56px 20px 70px; }
   .wall-title { font-size: 23px; }
   .wall-btn { width: 100%; padding: 14px 20px; }
+}
+
+
+/* ==========================================================================
+   首屏
+   ========================================================================== */
+
+/* 频率最高的两个动作：一主一次，主按钮不占满 */
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.hero-actions .btn.solid {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 15px 34px;
+  border-radius: 9px;
+  font-size: 15px;
+  text-align: center;
+  box-shadow: 0 14px 30px -18px rgba(0,0,0,.55);
+  transition: transform .14s, box-shadow .2s;
+}
+.hero-actions .btn.solid:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px -20px rgba(0,0,0,.6);
+}
+.btn-text {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--cinnabar);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+  transition: border-color .16s;
+}
+.btn-text:hover { border-bottom-color: var(--cinnabar); }
+
+/* 乾坤两卦入口 —— 两个都能点 */
+.hero-free {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 14px 0 0;
+  font-family: var(--serif);
+  font-size: 13px;
+}
+.hero-free a {
+  display: inline-block;
+  padding: 4px 14px;
+  border: 1px solid var(--cinnabar);
+  border-radius: 99px;
+  color: var(--cinnabar);
+  text-decoration: none;
+  font-weight: 700;
+  transition: background .16s, color .16s;
+}
+.hero-free a:hover { background: var(--cinnabar); color: #fff; }
+.hero-free span { color: var(--line-2); }
+.hero-free em {
+  font-style: normal;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+/* 滚动字幕改成链接 */
+.marquee-track a {
+  color: inherit;
+  text-decoration: none;
+  transition: color .16s;
+}
+.marquee-track a:hover { color: var(--cinnabar); }
+
+/* ---------- 首屏右侧：问题 + 按钮 + 结果样例 ---------- */
+.hero-sample {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hs-inner {
+  width: 100%;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.hs-q {
+  font-family: var(--serif);
+  font-size: 33px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0 0 14px;
+  color: var(--ink);
+  letter-spacing: .01em;
+}
+
+.hs-lede {
+  font-family: var(--serif);
+  font-size: 14px;
+  line-height: 1.95;
+  color: var(--ink-3);
+  margin: 0 0 26px;
+}
+
+.hs-main {
+  display: inline-block;
+  padding: 16px 46px;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--serif);
+  font-size: 15.5px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 18px 40px -24px rgba(0,0,0,.6);
+  transition: transform .14s, box-shadow .2s;
+}
+.hs-main:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 50px -26px rgba(0,0,0,.65);
+}
+
+.hs-alt {
+  display: block;
+  margin-top: 15px;
+  font-family: var(--serif);
+  font-size: 13.5px;
+  color: var(--cinnabar);
+  text-decoration: none;
+}
+.hs-alt:hover { text-decoration: underline; }
+
+.hs-rule {
+  height: 1px;
+  background: var(--line-2);
+  margin: 32px 0 22px;
+}
+
+.hs-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11px;
+  text-align: left;
+}
+.hs-card {
+  background: var(--card, #fffdf9);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--line-2);
+  border-radius: 9px;
+  padding: 15px 14px 14px;
+}
+.hs-card.is-do { border-top-color: var(--cinnabar); }
+.hs-card.is-exc { border-top-color: #d9a441; }
+
+.hs-card > span {
+  display: block;
+  font-family: var(--serif);
+  font-size: 9.5px;
+  letter-spacing: .14em;
+  color: var(--ink-3);
+  margin-bottom: 7px;
+}
+.hs-card p {
+  font-family: var(--serif);
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+@media (max-width: 1180px) {
+  .hs-q { font-size: 27px; }
+  .hs-cards { grid-template-columns: 1fr; }
+  .hs-card p { font-size: 13px; }
+}
+@media (max-width: 980px) {
+  .hero-sample { margin-top: 34px; }
+  .hs-q { font-size: 25px; }
+}
+@media (max-width: 620px) {
+  .hero-actions { gap: 16px; }
+  .hero-actions .btn.solid { width: 100%; padding: 14px 20px; }
+  .hs-main { width: 100%; padding: 15px 20px; }
+  .hs-q { font-size: 23px; }
 }
