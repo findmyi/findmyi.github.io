@@ -148,11 +148,30 @@ function normEmailLite(e) {
    ========================================================================== */
 
 /** 价格表（分）。与 assets/payment.js 的 tiers 必须一致。 */
-const PRICE = { PREM: 99900, FULL: 199900 };
+const PRICE = {
+  PREM: 99900,
+  FULL: 199900,
+  /* 处境自测的积分包：C3 = 3 次，以此类推 */
+  C3: 990,
+  C12: 2990,
+  C30: 5990,
+};
 const TITLE = {
   PREM: '周易六十四卦 · 困境对照表（终身买断）',
   FULL: '周易六十四卦 · 全站通行（终身买断）',
+  C3: '处境自测 · 3 次',
+  C12: '处境自测 · 12 次',
+  C30: '处境自测 · 30 次',
 };
+
+/* 积分包：买这些不是买内容，是买测完的次数 */
+const CREDIT_PACKS = { C3: 3, C12: 12, C30: 30 };
+
+/* 新用户免费次数 */
+const FREE_TRIALS = 3;
+
+/* 买了内容的人，自测不限次 —— 测试是获客，内容是变现 */
+const UNLIMITED_TIERS = ['PREM', 'FULL'];
 
 function genOutTradeNo() {
   const buf = new Uint8Array(9);
@@ -191,6 +210,22 @@ async function markPaidAndIssue(env, no, providerTradeNo) {
   if (rec.status === 'paid' && rec.key) return rec;      // 幂等
 
   const tier = rec.tier || 'PREM';
+
+  /* ---- 积分包：加次数，不发授权码 ---- */
+  if (CREDIT_PACKS[tier]) {
+    rec.status = 'paid';
+    rec.at = Date.now();
+    rec.providerTradeNo = providerTradeNo || rec.providerTradeNo || '';
+    rec.key = 'CREDITS';                    // 标记已处理
+    await putOrder(env, no, rec);
+
+    if (rec.email) {
+      await addCredits(env, rec.email, CREDIT_PACKS[tier]);
+    }
+    return rec;
+  }
+
+  /* ---- 内容：授权码 + 邮箱等级 ---- */
   const rawKey = genKey(tier);
   const pretty = prettyKey(rawKey);
 
@@ -212,6 +247,55 @@ async function markPaidAndIssue(env, no, providerTradeNo) {
   }));
 
   return rec;
+}
+
+/* ==========================================================================
+   处境自测的额度
+   --------------------------------------------------------------------------
+   KV: credits:<email> → { used, bought, free }
+     used   已用次数
+     bought 购买的总次数
+     free   免费次数（新用户 3 次）
+
+   可用次数 = free + bought - used
+   买了内容（PREM/FULL）的人不设上限。
+   ========================================================================== */
+
+async function getCreditRec(env, email) {
+  const e = normEmailLite(email);
+  if (!e) return null;
+  const raw = await env.KEYS.get('credits:' + e);
+  if (!raw) return { used: 0, bought: 0, free: FREE_TRIALS };
+  try {
+    const r = JSON.parse(raw);
+    return {
+      used: r.used || 0,
+      bought: r.bought || 0,
+      free: r.free == null ? FREE_TRIALS : r.free,
+    };
+  } catch {
+    return { used: 0, bought: 0, free: FREE_TRIALS };
+  }
+}
+
+async function putCreditRec(env, email, rec) {
+  const e = normEmailLite(email);
+  await env.KEYS.put('credits:' + e, JSON.stringify(rec));
+}
+
+async function addCredits(env, email, n) {
+  const rec = await getCreditRec(env, email);
+  rec.bought = (rec.bought || 0) + n;
+  await putCreditRec(env, email, rec);
+  return rec;
+}
+
+/** 可用次数：-1 表示不限 */
+async function remainingCredits(env, email) {
+  const tiers = await auth.tiersOfEmail(env, email);
+  if (tiers.some((t) => UNLIMITED_TIERS.includes(t))) return -1;
+  const rec = await getCreditRec(env, email);
+  return Math.max(0, (rec.free || 0) + (rec.bought || 0) - (rec.used || 0));
 }
 
 /** 创建订单 */
@@ -570,6 +654,54 @@ export default {
       const sess = await auth.readSession(env, session);
       if (!sess) return json({ ok: false, reason: 'need-login' });
       return createOrder(env, url, body, sess.email);
+    }
+
+    /* ================= 处境自测：查额度 ================= */
+    if (action === 'credits') {
+      const sess = await auth.readSession(env, session);
+      if (!sess) return json({ ok: false, reason: 'need-login' });
+      const left = await remainingCredits(env, sess.email);
+      return json({
+        ok: true,
+        remaining: left,                  // -1 = 不限
+        unlimited: left === -1,
+        email: sess.email,
+        packs: Object.entries(CREDIT_PACKS).map(([id, n]) => ({
+          id, count: n, price: PRICE[id], title: TITLE[id],
+        })),
+      });
+    }
+
+    /* ================= 处境自测：扣一次额度，返回阶段 ================= */
+    if (action === 'quiz') {
+      const sess = await auth.readSession(env, session);
+      if (!sess) return json({ ok: false, reason: 'need-login' });
+
+      const left = await remainingCredits(env, sess.email);
+      if (left === 0) return json({ ok: false, reason: 'no-credits' });
+
+      const stage = String(body.stage || '').toUpperCase();
+      if (!/^P[1-6]$/.test(stage)) return json({ ok: false, reason: 'badstage' });
+
+      // 扣额度（不限次的人不记）
+      if (left !== -1) {
+        const rec = await getCreditRec(env, sess.email);
+        rec.used = (rec.used || 0) + 1;
+        await putCreditRec(env, sess.email, rec);
+      }
+
+      // 记录这次测出的阶段，便于「我的记录」
+      const hist = (await env.KEYS.get('quiz:' + sess.email)) || '';
+      const line = stage + ',' + Date.now();
+      const lines = (hist ? hist.split('\n') : []).concat([line]).slice(-50);
+      await env.KEYS.put('quiz:' + sess.email, lines.join('\n'));
+
+      return json({
+        ok: true,
+        stage,
+        remaining: left === -1 ? -1 : left - 1,
+        unlimited: left === -1,
+      });
     }
 
     /* ================= 在线购买：查订单（前端轮询） ================= */

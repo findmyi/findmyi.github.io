@@ -881,6 +881,15 @@
       return;
     }
 
+    openPayFlow(d, tier);
+  }
+
+  /**
+   * 显示支付弹层并开始轮询。内容购买和积分购买共用这一套。
+   * @param {object} d     下单接口返回（outTradeNo / amount / payUrl / qrText…）
+   * @param {object} tier  档位信息（只用来显示名字）
+   */
+  function openPayFlow(d, tier) {
     const yuan = (d.amount / 100).toFixed(0);
     const payUrl = absPayUrl(d.payUrl);
     const qr = (window.Payment && window.Payment.payQr) ? window.Payment.payQr() : {};
@@ -1629,6 +1638,8 @@
       await showSituIndex();
       return;
     }
+    if (h.startsWith('#/quiz')) { await showQuiz(); return; }
+    if (h.startsWith('#/credits')) { await showCredits(); return; }
     if (h.startsWith('#/toc')) {
       showToc();
       const key = h.split('/')[2];
@@ -1644,11 +1655,277 @@
   }
 
   /* ==========================================================================
-     处境索引
+     处境自测
      --------------------------------------------------------------------------
-     用户不需要知道自己在第几卦 —— 他只需要说清「我现在怎么了」。
-     数据来自 data/situ.json（384 条：处境 / 铁律 / 例外）。
+     流程：
+       点开始 → 检查登录 → 查剩余次数 → 一题一屏 → 前端算阶段
+       → 提交服务端扣次数 → 结果页（阶段 + 三条处境）
+
+     文案纪律：对外一律叫「处境自测」，不出现「测卦 / 算命 / 预测 / 吉凶」。
      ========================================================================== */
+
+  let quizState = null;   // { answers, step }
+
+  function quizApi() {
+    return (typeof window.Payment !== 'undefined') ? window.Payment.workerUrl() : '';
+  }
+
+  async function quizCall(payload) {
+    const w = quizApi();
+    if (!w) return { ok: false, reason: 'no-worker' };
+    try {
+      const r = await fetch(w, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...payload, session: window.AuthUI ? window.AuthUI.session() : '' }),
+      });
+      return await r.json();
+    } catch {
+      return { ok: false, reason: 'network' };
+    }
+  }
+
+  /** #/quiz —— 入口 + 答题 */
+  async function showQuiz() {
+    if (!window.Quiz) { toast('题库未加载'); return; }
+
+    if (!window.AuthUI || !window.AuthUI.isLoggedIn()) {
+      renderQuizGate('开始之前，需要先登录。', '登录后我们才能记住你用了几次。');
+      return;
+    }
+
+    const c = await quizCall({ action: 'credits' });
+    if (!c.ok && c.reason === 'need-login') { renderQuizGate('登录已过期', '请重新登录。'); return; }
+
+    const left = c.remaining;
+    if (left === 0) { renderQuizPaywall(); return; }
+
+    // 开始答题
+    quizState = { answers: {}, step: 0, left };
+    renderQuizQuestion();
+  }
+
+  function renderQuizGate(title, sub) {
+    renderStandalone([
+      '<section class="situ-view quiz-view">',
+      '  <div class="situ-eyebrow">SELF-CHECK · 处境自测</div>',
+      '  <h1 class="situ-h1">' + esc(title) + '</h1>',
+      '  <p class="situ-lede">' + esc(sub) + '</p>',
+      '  <button class="btn solid quiz-login">登录 / 注册</button>',
+      '</section>',
+    ].join('\n'));
+    const b = document.querySelector('.quiz-login');
+    if (b) b.onclick = () => window.AuthUI.open('login');
+  }
+
+  function renderQuizPaywall() {
+    const packs = [
+      { id: 'C3', n: 3, price: 9.9, tag: '试一下' },
+      { id: 'C12', n: 12, price: 29.9, tag: '最常选', hot: true },
+      { id: 'C30', n: 30, price: 59.9, tag: '反复用' },
+    ];
+    const cards = packs.map((p) => {
+      const unit = (p.price / p.n).toFixed(2);
+      return '<div class="quiz-pack' + (p.hot ? ' is-hot' : '') + '">' +
+        (p.hot ? '<div class="quiz-pack-flag">最常选</div>' : '') +
+        '<div class="quiz-pack-tag">' + esc(p.tag) + '</div>' +
+        '<div class="quiz-pack-n">' + p.n + ' <small>次</small></div>' +
+        '<div class="quiz-pack-price"><small>￥</small>' + p.price + '</div>' +
+        '<div class="quiz-pack-unit">￥' + unit + ' / 次</div>' +
+        '<button class="quiz-pack-buy" data-pack="' + p.id + '">买这一次</button>' +
+      '</div>';
+    }).join('');
+
+    renderStandalone([
+      '<section class="situ-view quiz-view">',
+      '  <div class="situ-eyebrow">SELF-CHECK · 处境自测</div>',
+      '  <h1 class="situ-h1">免费的三次用完了</h1>',
+      '  <p class="situ-lede">' +
+      '    每一次自测会问你 12 个关于现状的问题，' +
+      '    然后给出你所在的阶段、三条最像你的处境，以及该做什么。' +
+      '  </p>',
+      '  <div class="quiz-packs">' + cards + '</div>',
+      '  <div class="situ-foot"><p>' +
+      '    买了六十四卦全解的，自测不限次数。' +
+      '    <a href="#/p/qian">先免费读乾卦 →</a></p></div>',
+      '</section>',
+    ].join('\n'));
+
+    $$('[data-pack]').forEach((el) => {
+      el.onclick = () => buyCredits(el.dataset.pack);
+    });
+  }
+
+  function renderQuizQuestion() {
+    const Q = window.Quiz.questions;
+    const i = quizState.step;
+    const q = Q[i];
+    if (!q) { finishQuiz(); return; }
+
+    const pct = Math.round((i / Q.length) * 100);
+    const opts = q.opts.map((o, k) =>
+      '<button class="quiz-opt" data-opt="' + k + '">' +
+        '<span class="quiz-opt-k">' + 'ABCDE'[k] + '</span>' +
+        '<span class="quiz-opt-t">' + esc(o.t) + '</span>' +
+      '</button>'
+    ).join('');
+
+    renderStandalone([
+      '<section class="situ-view quiz-view">',
+      '  <div class="quiz-bar"><div class="quiz-bar-fill" style="width:' + pct + '%"></div></div>',
+      '  <div class="quiz-meta">',
+      '    <span>' + (i + 1) + ' / ' + Q.length + '</span>',
+      '    <span>' + esc(q.cat) + '</span>',
+      '    <span>' + (quizState.left === -1 ? '不限次' : '还剩 ' + quizState.left + ' 次') + '</span>',
+      '  </div>',
+      '  <h2 class="quiz-q">' + esc(q.q) + '</h2>',
+      q.hint ? '<p class="quiz-hint">' + esc(q.hint) + '</p>' : '',
+      '  <div class="quiz-opts">' + opts + '</div>',
+      '  <div class="quiz-nav">',
+      i > 0 ? '    <button class="quiz-back">← 上一题</button>' : '    <span></span>',
+      '  </div>',
+      '</section>',
+    ].join('\n'));
+
+    $$('[data-opt]').forEach((el) => {
+      el.onclick = () => {
+        quizState.answers[q.id] = Number(el.dataset.opt);
+        quizState.step++;
+        renderQuizQuestion();
+      };
+    });
+
+    const back = document.querySelector('.quiz-back');
+    if (back) back.onclick = () => { if (quizState.step > 0) { quizState.step--; renderQuizQuestion(); } };
+  }
+
+  async function finishQuiz() {
+    const r = window.Quiz.score(quizState.answers);
+    renderStandalone([
+      '<section class="situ-view quiz-view">',
+      '  <div class="quiz-loading">正在看你的答案…</div>',
+      '</section>',
+    ].join('\n'));
+
+    const res = await quizCall({ action: 'quiz', stage: r.stage });
+    if (!res.ok) {
+      if (res.reason === 'no-credits') { renderQuizPaywall(); return; }
+      if (res.reason === 'need-login') { renderQuizGate('登录已过期', '请重新登录。'); return; }
+      toast('提交失败：' + (res.reason || '未知'));
+      return;
+    }
+
+    const situ = await loadSitu();
+    const picks = window.Quiz.pickSituations(res.stage, situ, 3);
+    renderQuizResult(res.stage, picks, res.remaining);
+  }
+
+  function renderQuizResult(code, picks, remaining) {
+    const st = window.Quiz.stageOf(code);
+    if (!st) { location.hash = '#/s'; return; }
+
+    const items = picks.map((it, i) => [
+      '<article class="quiz-pick">',
+      '  <div class="quiz-pick-no">' + (i + 1) + '</div>',
+      '  <h3 class="quiz-pick-tt">' + esc(it.verdict) + '</h3>',
+      '  <div class="quiz-pick-src">' + esc(it.gua) + '卦 · ' + esc(it.pos) + '</div>',
+      '  <div class="quiz-pick-block"><span>你在哪</span><p>' + esc(it.situ) + '</p></div>',
+      '  <div class="quiz-pick-block is-do"><span>该做什么</span><p>' + esc(it.rule) + '</p></div>',
+      it.exc ? '<div class="quiz-pick-block is-exc"><span>什么情况下不适用</span><p>' + esc(it.exc) + '</p></div>' : '',
+      '  <div class="quiz-pick-foot">',
+      '    <span class="quiz-yao">' + esc(it.yao) + '</span>',
+      '    <a href="#/p/' + esc(hexIdOfN(it.n)) + '">读这一卦 →</a>',
+      '  </div>',
+      '</article>',
+    ].join('\n')).join('\n');
+
+    renderStandalone([
+      '<section class="situ-view quiz-view">',
+      '  <div class="situ-eyebrow">RESULT · 你的处境</div>',
+      '  <div class="quiz-stage-no">阶段 ' + esc(code.replace('P', '')) + ' / 6</div>',
+      '  <h1 class="situ-h1">' + esc(st.name) + '</h1>',
+      '  <p class="situ-stage-ask">「' + esc(st.ask) + '」</p>',
+      '  <p class="situ-lede">' + esc(st.summary) + '</p>',
+      '  <div class="quiz-advice">',
+      '    <div class="quiz-advice-block"><span>这一阶段该做什么</span><p>' + esc(st.advice) + '</p></div>',
+      '    <div class="quiz-advice-block is-caution"><span>但什么情况下这套不适用</span><p>' + esc(st.caution) + '</p></div>',
+      '  </div>',
+      '  <h2 class="quiz-sub">最像你的三条处境</h2>',
+      '  <div class="quiz-picks">' + items + '</div>',
+      '  <div class="quiz-foot">',
+      '    <p>' + (remaining === -1 ? '你的自测不限次数。' : '还剩 ' + remaining + ' 次自测。') + '</p>',
+      '    <p><a href="#/quiz">再测一次</a> · <a href="#/s/' + esc(code) + '">看这一阶段的全部 64 条</a> · <a href="#/toc">按卦序读</a></p>',
+      '  </div>',
+      '</section>',
+    ].join('\n'));
+  }
+
+  /** 买积分包：复用现有下单 + 支付弹层 */
+  async function buyCredits(packId) {
+    const w = quizApi();
+    if (!w) { toast('购买通道未配置'); return; }
+    if (!window.AuthUI || !window.AuthUI.isLoggedIn()) { window.AuthUI.open('login'); return; }
+
+    const NAME = { C3: '处境自测 · 3 次', C12: '处境自测 · 12 次', C30: '处境自测 · 30 次' };
+
+    try {
+      const r = await fetch(w, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'buy', tier: packId,
+          session: window.AuthUI.session(),
+        }),
+      });
+      const d = await r.json();
+      if (!d.ok) {
+        if (d.reason === 'need-login') { window.AuthUI.open('login'); return; }
+        toast('下单失败：' + (d.reason || '未知'));
+        return;
+      }
+      openPayFlow(d, { id: packId, name: NAME[packId] || '处境自测' });
+    } catch {
+      toast('网络不通，请稍后重试');
+    }
+  }
+
+  /** #/credits —— 我的次数 + 充值 */
+  async function showCredits() {
+    if (!window.AuthUI || !window.AuthUI.isLoggedIn()) {
+      renderQuizGate('先登录，才能看你的次数。', '登录一次，90 天内不用重复登录。');
+      return;
+    }
+    const c = await quizCall({ action: 'credits' });
+    if (!c.ok) { toast('查询失败'); return; }
+
+    const packs = (c.packs || []).map((p) => {
+      const unit = (p.price / 100 / p.count).toFixed(2);
+      const hot = p.id === 'C12';
+      return '<div class="quiz-pack' + (hot ? ' is-hot' : '') + '">' +
+        (hot ? '<div class="quiz-pack-flag">最常选</div>' : '') +
+        '<div class="quiz-pack-n">' + p.count + ' <small>次</small></div>' +
+        '<div class="quiz-pack-price"><small>￥</small>' + (p.price / 100) + '</div>' +
+        '<div class="quiz-pack-unit">￥' + unit + ' / 次</div>' +
+        '<button class="quiz-pack-buy" data-pack="' + p.id + '">购买</button>' +
+      '</div>';
+    }).join('');
+
+    renderStandalone([
+      '<section class="situ-view quiz-view">',
+      '  <div class="situ-eyebrow">CREDITS · 我的自测次数</div>',
+      '  <h1 class="situ-h1">' +
+        (c.unlimited ? '不限次数' : c.remaining + ' 次') + '</h1>',
+      '  <p class="situ-lede">' + esc(c.email) + '</p>',
+      c.unlimited ? '<p class="situ-lede">你已购买六十四卦全解，自测不限次数。</p>' : '',
+      '  <h2 class="quiz-sub">充值</h2>',
+      '  <div class="quiz-packs">' + packs + '</div>',
+      '  <div class="situ-foot"><p><a href="#/quiz">去自测 →</a></p></div>',
+      '</section>',
+    ].join('\n'));
+
+    $$('[data-pack]').forEach((el) => { el.onclick = () => buyCredits(el.dataset.pack); });
+  }
+
 
   let SITU = null;
 
