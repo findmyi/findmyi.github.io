@@ -2281,6 +2281,7 @@
 
     $$('[data-act="search"]').forEach((b) => (b.onclick = (e) => { e.preventDefault(); openSearch(); }));
     $$('[data-act="toc"]').forEach((b) => (b.onclick = (e) => { e.preventDefault(); location.hash = '#/toc'; }));
+    $$('[data-act="feedback"]').forEach((b) => (b.onclick = (e) => { e.preventDefault(); location.hash = '#/feedback'; }));
     $$('[data-act="random"]').forEach((b) => (b.onclick = (e) => {
       e.preventDefault();
       const a = M.articles[Math.floor(Math.random() * M.articles.length)];
