@@ -241,15 +241,8 @@
       '卦辞 · 彖传 · 象传 · 爻辞',
     ].map((t) => `<span>${esc(t)}</span>`).join('');
 
-    // 继续阅读
-    const last = LS.get('last', null);
-    if (last && byId(last)) {
-      const a = byId(last);
-      $('#continueTitle').textContent = isFront(a) ? (a.short || a.name) : a.name + '卦';
-      const link = $('#continueLink');
-      link.href = `#/p/${a.id}`;
-      link.hidden = false;
-    }
+    // 「继续阅读」入口已移除 —— 首屏同时有两个 CTA 就够了，
+    // 第三个入口只会稀释注意力。
 
     // 阅读路径（贴近前置篇的真实入口）
     /* 首页入口：前 6 个是「你在哪个阶段」，最后给完全没接触过的人。

@@ -204,12 +204,6 @@ img { max-width: 100%; display: block; }
 .btn.outline:hover { border-color: var(--cinnabar); color: var(--cinnabar); transform: translateY(-2px); }
 .btn.outline.dark { background: transparent; }
 
-.hero-continue {
-  display: inline-block; margin-top: 22px; font-size: 13.5px;
-  color: var(--cinnabar); border-bottom: 1px solid color-mix(in srgb, var(--cinnabar) 35%, transparent);
-  padding-bottom: 2px;
-}
-
 /* 卦辞卡片（右侧） */
 .hero-tickets { display: flex; flex-direction: column; gap: 14px; }
 .ticket {
@@ -1442,7 +1436,7 @@ img { max-width: 100%; display: block; }
   align-items: center;
   gap: 24px;
   flex-wrap: wrap;
-  margin-top: 8px;
+  margin-top: 30px;
 }
 .hero-actions .btn.solid {
   flex: 0 0 auto;
@@ -1619,3 +1613,4 @@ img { max-width: 100%; display: block; }
   .hs-main { width: 100%; padding: 15px 20px; }
   .hs-q { font-size: 23px; }
 }
+
