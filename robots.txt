@@ -15,4 +15,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://zhouyiccc2026.github.io/zhouyi/sitemap.xml
+Sitemap: https://findmyi.github.io/zhouyi/sitemap.xml
