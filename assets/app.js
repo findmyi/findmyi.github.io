@@ -657,6 +657,13 @@
     currentId = a.id;
     LS.set('last', a.id);
 
+    if (window.Feedback) {
+      window.Feedback.setContext({
+        from: 'article',
+        label: (a.name || '') + (isFront(a) ? '' : '卦') + (a.full ? ' · ' + a.full : ''),
+      });
+    }
+
     const front = isFront(a);
 
     $('#crumb').innerHTML =
@@ -1701,6 +1708,15 @@
     }
     if (h.startsWith('#/quiz')) { await showQuiz(); return; }
     if (h.startsWith('#/credits')) { await showCredits(); return; }
+    if (h.startsWith('#/feedback')) {
+      const fbId = h.split('/')[2];
+      if (window.Feedback) {
+        window.FeedbackRerender = () => route();
+        if (fbId) await window.Feedback.showDetail(fbId, renderStandalone);
+        else await window.Feedback.showWall(renderStandalone);
+      }
+      return;
+    }
     if (h.startsWith('#/toc')) {
       showToc();
       const key = h.split('/')[2];
@@ -1929,6 +1945,12 @@
     try {
       const situ = await loadSitu();
       const picks = window.Quiz.pickSituations(res.stage, situ, 3);
+      if (window.Feedback) {
+        window.Feedback.setContext({
+          from: 'quiz',
+          label: '处境自测 · ' + (r.stage || ''),
+        });
+      }
       renderQuizResult(res.stage, picks, res.remaining);
     } catch (e) {
       renderQuizError('render', r.stage);
@@ -2006,7 +2028,7 @@
       '  </div>',
       '  <div class="quiz-foot">',
       '    <p>' + (remaining === -1 ? '你的自测不限次数。' : '还剩 ' + remaining + ' 次自测。') + '</p>',
-      '    <p><a href="#/quiz">再测一次</a> · <a href="#/s/' + esc(code) + '">看这一阶段的全部 64 条</a> · <a href="#/toc">按卦序读</a></p>',
+      '    <p><a href="#/quiz">再测一次</a> · <a href="#/s/' + esc(code) + '">看这一阶段的全部 64 条</a> · <a href="#/toc">按卦序读</a> · <a href="#/feedback" id="quizFbLink">反馈</a></p>',
       '  </div>',
       '</section>',
     ].join('\n'));

@@ -949,6 +949,187 @@ export default {
       return json({ ok: true, via: 'key', tier: rec.tier, contents: out });
     }
 
+    /* ================= 用户反馈（共创反馈墙） =================
+       类型：idea 建议 / bug 问题 / content 内容
+       状态：0 待评估 / 1 处理中 / 2 已解决 / 3 暂不处理
+       存储：fb:seq 计数 · fb:{id} 单条 · fb:index 最新在前
+       ================================================= */
+    if (action === 'feedback.list') {
+      const raw = await env.KEYS.get('fb:index');
+      let ids = [];
+      try { ids = raw ? JSON.parse(raw) : []; } catch { ids = []; }
+      const wantType = body.type ? String(body.type) : '';
+      const wantStatus = (body.status === 0 || body.status) && body.status !== ''
+        ? Number(body.status) : null;
+      const page = Math.max(1, Number(body.page) || 1);
+      const pageSize = Math.min(50, Math.max(1, Number(body.pageSize) || 20));
+
+      const items = [];
+      for (const id of ids) {
+        const rawItem = await env.KEYS.get('fb:' + id);
+        if (!rawItem) continue;
+        let it;
+        try { it = JSON.parse(rawItem); } catch { continue; }
+        if (wantType && it.type !== wantType) continue;
+        if (wantStatus !== null && it.status !== wantStatus) continue;
+        items.push({
+          id: it.id,
+          type: it.type,
+          title: it.title,
+          body: it.body,
+          status: it.status,
+          createdAt: it.createdAt,
+          updatedAt: it.updatedAt,
+          commentsTotal: (it.comments || []).length,
+          label: it.label || '',
+        });
+      }
+      const start = (page - 1) * pageSize;
+      return json({
+        ok: true,
+        total: items.length,
+        page,
+        pageSize,
+        hasMore: start + pageSize < items.length,
+        items: items.slice(start, start + pageSize),
+      });
+    }
+
+    if (action === 'feedback.create') {
+      const type = String(body.type || 'idea');
+      if (!['idea', 'bug', 'content'].includes(type)) {
+        return json({ ok: false, reason: 'badtype' }, 400);
+      }
+      const title = String(body.title || '').trim().slice(0, 80);
+      const text = String(body.body || '').trim().slice(0, 2000);
+      const contact = String(body.contact || '').trim().slice(0, 80);
+      const from = String(body.from || '').slice(0, 80);
+      const label = String(body.label || '').slice(0, 80);
+      if (!title || text.length < 8) return json({ ok: false, reason: 'tooshort' }, 400);
+
+      /* 简单限流：同 IP 10 分钟最多 5 条 */
+      const ip = request.headers.get('cf-connecting-ip') || 'anon';
+      const rlKey = 'fb:rl:' + ip;
+      const now = Date.now();
+      let hits = [];
+      try { hits = JSON.parse((await env.KEYS.get(rlKey)) || '[]'); } catch { hits = []; }
+      hits = hits.filter((t) => now - t < 10 * 60 * 1000);
+      if (hits.length >= 5) return json({ ok: false, reason: 'rate' }, 429);
+      hits.push(now);
+      await env.KEYS.put(rlKey, JSON.stringify(hits), { expirationTtl: 600 });
+
+      let seq = Number((await env.KEYS.get('fb:seq')) || '0') + 1;
+      await env.KEYS.put('fb:seq', String(seq));
+
+      const rec = {
+        id: seq,
+        type,
+        title,
+        body: text,
+        contact,
+        from,
+        label,
+        status: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        comments: [],
+      };
+      await env.KEYS.put('fb:' + seq, JSON.stringify(rec));
+      let idx = [];
+      try { idx = JSON.parse((await env.KEYS.get('fb:index')) || '[]'); } catch { idx = []; }
+      idx.unshift(seq);
+      await env.KEYS.put('fb:index', JSON.stringify(idx.slice(0, 2000)));
+      return json({ ok: true, id: seq });
+    }
+
+    if (action === 'feedback.get') {
+      const id = Number(body.id);
+      if (!Number.isInteger(id) || id <= 0) return json({ ok: false, reason: 'badid' }, 400);
+      const raw = await env.KEYS.get('fb:' + id);
+      if (!raw) return json({ ok: false, reason: 'notfound' }, 404);
+      let it;
+      try { it = JSON.parse(raw); } catch { return json({ ok: false, reason: 'corrupt' }, 500); }
+      /* 联系方式不下发给匿名读者 */
+      return json({
+        ok: true,
+        item: {
+          id: it.id,
+          type: it.type,
+          title: it.title,
+          body: it.body,
+          status: it.status,
+          createdAt: it.createdAt,
+          updatedAt: it.updatedAt,
+          label: it.label || '',
+          comments: it.comments || [],
+        },
+      });
+    }
+
+    if (action === 'feedback.comment') {
+      const id = Number(body.id);
+      const text = String(body.body || '').trim().slice(0, 1000);
+      if (!Number.isInteger(id) || id <= 0) return json({ ok: false, reason: 'badid' }, 400);
+      if (!text) return json({ ok: false, reason: 'tooshort' }, 400);
+      const raw = await env.KEYS.get('fb:' + id);
+      if (!raw) return json({ ok: false, reason: 'notfound' }, 404);
+      let it;
+      try { it = JSON.parse(raw); } catch { return json({ ok: false, reason: 'corrupt' }, 500); }
+
+      const ip = request.headers.get('cf-connecting-ip') || 'anon';
+      const rlKey = 'fb:rlc:' + ip;
+      const now = Date.now();
+      let hits = [];
+      try { hits = JSON.parse((await env.KEYS.get(rlKey)) || '[]'); } catch { hits = []; }
+      hits = hits.filter((t) => now - t < 5 * 60 * 1000);
+      if (hits.length >= 8) return json({ ok: false, reason: 'rate' }, 429);
+      hits.push(now);
+      await env.KEYS.put(rlKey, JSON.stringify(hits), { expirationTtl: 300 });
+
+      it.comments = it.comments || [];
+      it.comments.push({
+        id: it.comments.length + 1,
+        body: text,
+        authorType: 0,
+        createdAt: new Date().toISOString(),
+      });
+      it.updatedAt = new Date().toISOString();
+      await env.KEYS.put('fb:' + id, JSON.stringify(it));
+      return json({ ok: true, commentsTotal: it.comments.length });
+    }
+
+    /* 管理员：改状态 + 官方回复 */
+    if (action === 'feedback.moderate') {
+      if (!env.ADMIN_TOKEN || body.token !== env.ADMIN_TOKEN) {
+        return json({ ok: false, reason: 'unauthorized' }, 401);
+      }
+      const id = Number(body.id);
+      if (!Number.isInteger(id) || id <= 0) return json({ ok: false, reason: 'badid' }, 400);
+      const raw = await env.KEYS.get('fb:' + id);
+      if (!raw) return json({ ok: false, reason: 'notfound' }, 404);
+      let it;
+      try { it = JSON.parse(raw); } catch { return json({ ok: false, reason: 'corrupt' }, 500); }
+
+      if (body.status !== undefined && body.status !== null) {
+        const st = Number(body.status);
+        if (![0, 1, 2, 3].includes(st)) return json({ ok: false, reason: 'badstatus' }, 400);
+        it.status = st;
+      }
+      const reply = body.reply != null ? String(body.reply).trim().slice(0, 2000) : '';
+      if (reply) {
+        it.comments = it.comments || [];
+        it.comments.push({
+          id: it.comments.length + 1,
+          body: reply,
+          authorType: 1,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      it.updatedAt = new Date().toISOString();
+      await env.KEYS.put('fb:' + id, JSON.stringify(it));
+      return json({ ok: true, status: it.status, commentsTotal: (it.comments || []).length });
+    }
+
     return json({ ok: false, reason: 'unknown' }, 400);
   },
 };

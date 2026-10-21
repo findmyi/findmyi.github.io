@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    周易六十四卦 · 应用样式
    设计语言：宣纸底色 + 墨色文本 + 朱砂点缀，古典而克制
    ========================================================================== */
@@ -385,6 +385,138 @@ img { max-width: 100%; display: block; }
 }
 .footer-row.sub { margin-top: 12px; font-size: 12px; color: var(--ink-4); opacity: .82; }
 .footer-brand { letter-spacing: .16em; font-size: 11px; }
+.footer-row.sub a { color: var(--ink-3); text-decoration: none; }
+.footer-row.sub a:hover { color: var(--cinnabar); text-decoration: underline; }
+.footer-sep { margin: 0 6px; opacity: .5; }
+
+/* ==========================================================================
+   反馈墙（框架对齐生财共创反馈）
+   ========================================================================== */
+.fb-view { padding-bottom: 60px; }
+.fb-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap; margin: 22px 0 8px;
+}
+.fb-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.fb-chip {
+  border: 1px solid var(--line-2); background: var(--card); color: var(--ink-2);
+  border-radius: 999px; padding: 6px 14px; font-size: 13px; cursor: pointer;
+  font-family: inherit;
+}
+.fb-chip.is-on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.fb-write {
+  border: 0; background: var(--cinnabar); color: #fff; border-radius: 999px;
+  padding: 9px 18px; font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.fb-write:hover { background: var(--cinnabar-2); }
+.fb-from { font-size: 12px; color: var(--ink-4); margin: 8px 0 0; }
+.fb-list { display: flex; flex-direction: column; gap: 13px; margin-top: 18px; }
+.fb-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px 18px; cursor: pointer; transition: border-color .15s ease, transform .15s ease;
+}
+.fb-card:hover { border-color: var(--line-2); transform: translateY(-1px); }
+.fb-card-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.fb-type {
+  font-size: 11px; padding: 2px 8px; border-radius: 999px;
+  background: var(--paper-2); color: var(--ink-3);
+}
+.fb-badge {
+  font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--paper-2); color: var(--ink-3);
+}
+.fb-badge.st-open { background: #f3e6d0; color: #8a5a18; }
+.fb-badge.st-wip { background: #dce8f5; color: #2a5a8a; }
+.fb-badge.st-done { background: #dceee4; color: var(--jade); }
+.fb-badge.st-hold { background: var(--paper-2); color: var(--ink-4); }
+.fb-time { margin-left: auto; font-size: 11.5px; color: var(--ink-4); }
+.fb-card-tt {
+  margin: 0 0 6px; font-family: var(--serif); font-size: 17px; font-weight: 700;
+  color: var(--ink); line-height: 1.45;
+}
+.fb-card-ex { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-3); line-height: 1.7; }
+.fb-card-ft {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; color: var(--ink-4);
+}
+.fb-open { color: var(--cinnabar); }
+.fb-empty {
+  padding: 28px 18px; text-align: center; color: var(--ink-4); font-size: 13.5px;
+  border: 1px dashed var(--line-2); border-radius: var(--radius); background: var(--card);
+}
+.fb-pager {
+  display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 22px;
+}
+.fb-page-btn {
+  border: 1px solid var(--line-2); background: var(--card); color: var(--ink-2);
+  border-radius: 999px; padding: 7px 14px; cursor: pointer; font-family: inherit; font-size: 13px;
+}
+.fb-page-no { font-size: 12.5px; color: var(--ink-4); }
+
+/* 提交浮层 */
+.fb-compose {
+  position: fixed; inset: 0; z-index: 80; background: rgba(28, 26, 23, .42);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.fb-compose-box {
+  width: min(520px, 100%); background: var(--paper); border-radius: var(--radius);
+  border: 1px solid var(--line-2); padding: 22px; box-shadow: var(--shadow-lg);
+  max-height: min(86vh, 720px); overflow: auto;
+}
+.fb-compose-hd {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+  font-family: var(--serif); font-size: 18px;
+}
+.fb-compose-x {
+  border: 0; background: transparent; font-size: 22px; color: var(--ink-4); cursor: pointer;
+  line-height: 1;
+}
+.fb-compose-type { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.fb-radio {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2);
+  cursor: pointer;
+}
+.fb-input, .fb-textarea {
+  width: 100%; box-sizing: border-box; margin-bottom: 10px;
+  border: 1px solid var(--line-2); border-radius: var(--radius-sm);
+  padding: 11px 13px; font: inherit; font-size: 14px; color: var(--ink);
+  background: var(--card); resize: vertical;
+}
+.fb-input:focus, .fb-textarea:focus {
+  outline: none; border-color: var(--cinnabar); box-shadow: 0 0 0 3px rgba(168, 50, 42, .12);
+}
+.fb-msg { min-height: 18px; font-size: 12.5px; color: var(--ink-3); margin: 4px 0 10px; }
+.fb-msg.is-err { color: var(--cinnabar); }
+.fb-submit {
+  width: 100%; border: 0; border-radius: var(--radius-sm); padding: 12px 16px;
+  background: var(--cinnabar); color: #fff; font: inherit; font-weight: 700; cursor: pointer;
+}
+.fb-submit:disabled { opacity: .55; cursor: default; }
+.fb-submit:hover:not(:disabled) { background: var(--cinnabar-2); }
+
+/* 详情 */
+.fb-detail-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0 4px; }
+.fb-body {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px 18px; margin: 14px 0 22px; font-size: 14px; line-height: 1.85; color: var(--ink-2);
+}
+.fb-cmts { display: flex; flex-direction: column; gap: 11px; margin-bottom: 18px; }
+.fb-cmt {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 13px 15px;
+}
+.fb-cmt.is-official { border-color: #c9b78a; background: #fbf7ee; }
+.fb-cmt-hd { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.fb-cmt-who {
+  font-size: 11px; padding: 2px 8px; border-radius: 999px;
+  background: var(--paper-2); color: var(--ink-3);
+}
+.fb-cmt.is-official .fb-cmt-who { background: var(--gold); color: #fff; }
+.fb-cmt-time { font-size: 11.5px; color: var(--ink-4); margin-left: auto; }
+.fb-cmt-body { margin: 0; font-size: 13.5px; line-height: 1.75; color: var(--ink-2); white-space: pre-wrap; }
+.fb-reply { margin-top: 8px; }
+.fb-foot { margin-top: 28px; font-size: 13px; }
+.fb-foot a { color: var(--cinnabar); text-decoration: none; }
+.fb-foot a:hover { text-decoration: underline; }
 
 /* ==========================================================================
    大目录页
