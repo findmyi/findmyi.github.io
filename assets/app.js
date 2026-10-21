@@ -175,10 +175,12 @@
     // 顶栏计数
     $('#tocCount').textContent = total;
 
-    // 滚动字幕：卦名序列
-    const names = M.articles.map((a) => `䷀ ${a.name}　${a.full}`);
+    // 滚动字幕：卦名序列（可点击，直接进那一卦）
     const track = $('#marqueeTrack');
-    track.innerHTML = names.concat(names).map((t) => `<span>${esc(t.replace('䷀ ', ''))}</span>`).join('');
+    const items = M.articles.map((a) =>
+      `<a href="#/p/${esc(a.id)}" title="第 ${a.n} 卦 · ${esc(a.full)}">${esc(a.name)}　${esc(a.full)}</a>`
+    );
+    track.innerHTML = items.concat(items).join('');
 
     // 统计
     const totalYao = M.articles.reduce((s, a) => s + (a.yaoCount || 0), 0);
