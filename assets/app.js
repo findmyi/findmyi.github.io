@@ -169,6 +169,56 @@
   }
 
   /* ---------- 封面渲染 ---------- */
+  /* ==========================================================================
+     首屏的结果样例
+     --------------------------------------------------------------------------
+     为什么放这个：
+       用户是「求助者」，不是「读者」。他要判断「这东西能不能帮我」，
+       靠的是【看到结果长什么样】，不是看到「384 条」「64 卦」这种库存数字。
+       所以首屏右侧不再放内容预告，直接放一条真实的结果。
+
+     数据来源：data/situ.json 里的「屯 · 六三」。
+     这里写死是因为它是营销素材，应该固定、可控，不随数据更新而变。
+     ========================================================================== */
+  const HERO_SAMPLE = {
+    src: '屯 · 六三',
+    verdict: '没有向导就别进山',
+    situ: '你看上一个机会，判断它肯定能成。可你心里清楚，这个行业的水深你没趟过。你甚至连该问谁都不知道。',
+    rule: '在投入第一笔实质成本之前，先找一个在这个圈子里待满三年的人，问他一个问题——这个行当你最怕的是什么。他答得出来，你可以试；他答得含糊，或者你连这样一个人都找不到，这件事现在就停。',
+    exc: '如果这件事亏到底也只损失一笔你能承受的学费，不伤你的根基和后路，那就去闯。看别人游泳看十年，也不如自己呛一口水。可你要是拿全家的底去学游泳，那就不是学，是赌。',
+  };
+
+  function renderHeroSample() {
+    const host = $('#heroSample');
+    if (!host) return;
+    const s = HERO_SAMPLE;
+    host.innerHTML = [
+      '<div class="hs-frame">',
+      '  <div class="hs-head">',
+      '    <span class="hs-eyebrow">测完你会看到这样的东西</span>',
+      '    <span class="hs-src">' + esc(s.src) + '</span>',
+      '  </div>',
+      '  <div class="hs-verdict">' + esc(s.verdict) + '</div>',
+      '  <div class="hs-block">',
+      '    <span>你在哪</span>',
+      '    <p>' + esc(s.situ) + '</p>',
+      '  </div>',
+      '  <div class="hs-block is-do">',
+      '    <span>该做什么</span>',
+      '    <p>' + esc(s.rule) + '</p>',
+      '  </div>',
+      '  <div class="hs-block is-exc">',
+      '    <span>什么情况下不适用</span>',
+      '    <p>' + esc(s.exc) + '</p>',
+      '  </div>',
+      '  <div class="hs-foot">',
+      '    <a class="hs-go" href="#/quiz">测一测我在哪个阶段 →</a>',
+      '    <span class="hs-note">这是 384 条里的一条</span>',
+      '  </div>',
+      '</div>',
+    ].join('\n');
+  }
+
   function renderCover() {
     const total = M.meta.total;
 
@@ -2317,6 +2367,7 @@
     if (window.AuthUI) window.AuthUI.handleCallback();
 
     renderCover();
+    renderHeroSample();
     bind();
     initTickets();
     renderAccountBtn();
