@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  html,body{margin:0;padding:0;background:#fbf8f1}
+  #wrap{width:1080px;height:1440px;overflow:hidden}
+  #wrap img{display:block;width:1080px;height:1440px}
+</style>
+</head>
+<body>
+<div id="wrap"></div>
+<script src="/assets/qrcode.js"></script>
+<script src="/assets/share-card.js"></script>
+<script src="/assets/quiz.js"></script>
+<script>
+(async function () {
+  const q = new URLSearchParams(location.search);
+  const stage = q.get('stage') || 'P1';
+  const gua = q.get('gua') || '';
+  const pos = q.get('pos') || '';
+
+  // 拉处境数据，挑一条该阶段的
+  let pick = null;
+  try {
+    const r = await fetch('/data/situ.json');
+    const j = await r.json();
+    const list = (j.items || []).filter(x => x.stage === stage);
+    pick = list.find(x => x.gua === gua && x.pos === pos) || list[0];
+  } catch (e) { /* 忽略 */ }
+
+  const st = window.Quiz.stages[stage] || window.Quiz.stages.P3;
+
+  try { await document.fonts.ready; } catch (e) {}
+
+  const cv = window.ShareCard.render({
+    stage,
+    stageName: st.name,
+    ask: st.ask,
+    verdict: pick ? pick.verdict : '',
+    gua: pick ? pick.gua : '',
+    pos: pick ? pick.pos : '',
+    advice: st.advice || '',
+  }, 'https://findmyi.github.io/');
+
+  const img = document.createElement('img');
+  img.src = cv.toDataURL('image/png');
+  document.getElementById('wrap').appendChild(img);
+  document.title = 'CARD_READY';
+})();
+</script>
+</body></html>

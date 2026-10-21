@@ -1655,15 +1655,15 @@
   }
 
   async function showArticleRoute(a, sec) {
-    /* 登录墙：未登录不能进正文，只能在首页看。
-       产品决策 —— 把「看内容」和「留身份」绑在一起。
-       代价：第一次访问的转化会掉。
-       收益：每个读者都变成可触达的账号。
-       搜索引擎不受影响：p/<id>.html 是独立静态页，仍可被抓取。 */
-    if (window.AuthUI && !window.AuthUI.isLoggedIn()) {
-      renderLoginWall(a);
-      return;
-    }
+    /* 免费内容不需要登录 —— 卦辞、彖传、象传、爻辞、白话、处世应用，
+       以及乾坤两卦的完整深度解读，任何人直接看。
+
+       需要登录的只有两处：
+         ① 付费卦的逐爻详解（付费卡之后，登录 + 购买才由服务端下发）
+         ② 处境自测（要记额度和结果）
+
+       这样搜索来的人落地就能读，不会被登录墙弹走；
+       读到付费卡再要求登录，转化路径更顺。 */
 
     coverView.hidden = true;
     tocView.hidden = true;
@@ -1674,29 +1674,6 @@
     $('#fab').hidden = false;
     document.title = `${a.name}卦 · ${a.full} · 周易全解`;
     await showArticle(a, sec);
-  }
-
-  /** 未登录时的拦截页 */
-  function renderLoginWall(a) {
-    const name = (a && a.name) ? a.name + '卦' : '这一卦';
-    renderStandalone([
-      '<section class="wall">',
-      '  <div class="wall-eyebrow">需要登录</div>',
-      '  <h1 class="wall-title">' + esc(name) + '要登录后才能读</h1>',
-      '  <p class="wall-lede">' +
-      '    登录一次，90 天内不用再登。已购内容、自测次数、读到哪儿了，都跟着账号走，' +
-      '    换设备登录就能接着看。' +
-      '  </p>',
-      '  <button class="wall-btn" id="wallLogin">用 Google 账号登录</button>',
-      '  <div class="wall-foot">',
-      '    <p>还没准备好登录？先回首页看看，或者试一下 12 道题的处境自测。</p>',
-      '    <p><a href="#/">← 回首页</a> · <a href="#/quiz">测一测我在哪个阶段</a></p>',
-      '  </div>',
-      '</section>',
-    ].join('\n'));
-
-    const b = document.getElementById('wallLogin');
-    if (b) b.onclick = () => window.AuthUI.open('login');
   }
 
   async function route() {
