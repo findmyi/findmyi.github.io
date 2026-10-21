@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>首页布局 · 三个方案对比</title>
+<style>
+:root{
+  --paper:#fbf8f1; --paper-2:#f3efe7; --card:#fffdf9;
+  --ink:#1c1a17; --ink-2:#44403a; --ink-3:#6b645a; --ink-4:#9a938a;
+  --line:#e8e2d8; --line-2:#d9d2c6;
+  --cinnabar:#a8322a; --cinnabar-2:#8d2a23;
+  --serif:"Songti SC","Source Han Serif SC","Noto Serif CJK SC",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+
+/* ---------- 顶部说明 ---------- */
+.intro{
+  padding:34px 30px 28px;border-bottom:1px solid var(--line-2);
+  background:var(--paper-2);position:sticky;top:0;z-index:99;
+  display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;
+}
+.intro h1{font:700 19px/1.4 var(--serif);margin:0}
+.intro p{font:13px/1.7 var(--serif);color:var(--ink-3);margin:4px 0 0}
+.intro nav{display:flex;gap:9px}
+.intro nav a{
+  padding:7px 16px;border:1px solid var(--line-2);border-radius:99px;
+  font:13px var(--serif);color:var(--ink-2);text-decoration:none;background:var(--card);
+  transition:.16s;
+}
+.intro nav a:hover{border-color:var(--cinnabar);color:var(--cinnabar)}
+
+/* ---------- 每个方案的容器 ---------- */
+.pv{
+  min-height:100vh;position:relative;
+  padding:44px 56px 40px;
+  border-bottom:1px solid var(--line-2);
+  display:flex;flex-direction:column;
+}
+.pv-tag{
+  position:absolute;top:18px;left:56px;
+  font:11px var(--serif);letter-spacing:.16em;color:var(--cinnabar);
+  background:var(--card);border:1px solid var(--cinnabar);
+  padding:4px 12px;border-radius:99px;z-index:5;
+}
+.pv-note{
+  position:absolute;top:16px;right:56px;max-width:320px;
+  font:11.5px/1.7 var(--serif);color:var(--ink-4);text-align:right;z-index:5;
+}
+
+/* 顶栏（简化版） */
+.pv-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.pv-brand{font:13px var(--serif);letter-spacing:.24em;color:var(--ink-3)}
+.pv-nav{display:flex;gap:9px}
+.pv-nav span{
+  padding:7px 15px;border:1px solid var(--line-2);border-radius:99px;
+  font:12.5px var(--serif);color:var(--ink-2);background:var(--card);
+}
+
+/* ---------- 方案 1：编辑式精简 ---------- */
+.p1-body{display:grid;grid-template-columns:1.05fr .95fr;gap:52px;align-items:center;flex:1}
+.p1-left .kicker{display:none}
+.p1-title{font:700 76px/1.06 var(--serif);margin:0 0 26px;letter-spacing:-.01em}
+.p1-title .stroke{
+  color:transparent;-webkit-text-stroke:1.5px var(--cinnabar);
+}
+.p1-lead{font:16.5px/2.05 var(--serif);color:var(--ink-2);margin:0 0 13px;max-width:33em}
+.p1-lead b{color:var(--ink);font-weight:700}
+.p1-actions{display:flex;align-items:center;gap:22px;margin:30px 0 18px}
+.p1-btn-main{
+  flex:0 0 auto;min-width:250px;padding:15px 28px;border-radius:9px;
+  background:var(--ink);color:var(--paper);font:700 15px var(--serif);
+  text-align:center;text-decoration:none;
+}
+.p1-btn-sub{
+  font:14px var(--serif);color:var(--cinnabar);text-decoration:none;
+  border-bottom:1px solid transparent;padding-bottom:2px;
+}
+.p1-btn-sub:hover{border-bottom-color:var(--cinnabar)}
+.p1-free{display:flex;align-items:center;gap:10px;font:13px var(--serif);color:var(--ink-3)}
+.p1-free a{
+  padding:4px 13px;border:1px solid var(--cinnabar);border-radius:99px;
+  color:var(--cinnabar);text-decoration:none;font-weight:700;
+}
+.p1-free a:hover{background:var(--cinnabar);color:#fff}
+
+/* ---------- 方案 2：双栏不对称 ---------- */
+.p2-body{display:grid;grid-template-columns:38fr 62fr;gap:44px;align-items:center;flex:1}
+.p2-title{font:700 64px/1.08 var(--serif);margin:0 0 20px;letter-spacing:-.01em}
+.p2-title .stroke{color:transparent;-webkit-text-stroke:1.5px var(--cinnabar)}
+.p2-lead{font:15.5px/2 var(--serif);color:var(--ink-2);margin:0 0 26px}
+.p2-lead b{color:var(--ink);font-weight:700}
+.p2-btn{
+  display:block;width:100%;padding:16px;border-radius:9px;
+  background:var(--ink);color:var(--paper);font:700 15.5px var(--serif);
+  text-align:center;text-decoration:none;margin-bottom:12px;
+}
+.p2-sub{font:13.5px var(--serif);color:var(--cinnabar);text-decoration:none;display:block;margin-bottom:26px}
+.p2-free{display:flex;align-items:center;gap:9px;font:12.5px var(--serif);color:var(--ink-3);flex-wrap:wrap}
+.p2-free a{
+  padding:4px 12px;border:1px solid var(--cinnabar);border-radius:99px;
+  color:var(--cinnabar);text-decoration:none;font-weight:700;
+}
+.p2-free a:hover{background:var(--cinnabar);color:#fff}
+
+/* ---------- 样例卡（方案 2 放大版） ---------- */
+.sample{
+  background:var(--card);border:1px solid var(--line-2);border-radius:14px;
+  padding:30px 34px 26px;box-shadow:0 30px 70px -46px rgba(0,0,0,.45);
+}
+.sample-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding-bottom:14px;margin-bottom:20px;border-bottom:1px solid var(--line);
+}
+.sample-head .eb{font:11px var(--serif);letter-spacing:.14em;color:var(--ink-4)}
+.sample-head .src{font:12.5px var(--serif);color:var(--cinnabar);white-space:nowrap}
+.sample-verdict{font:700 27px/1.4 var(--serif);margin:0 0 22px}
+.sample-block{margin-bottom:16px}
+.sample-block .lb{
+  display:block;font:10.5px var(--serif);letter-spacing:.16em;
+  color:var(--ink-3);margin-bottom:5px;
+}
+.sample-block p{font:14.5px/1.95 var(--serif);color:var(--ink-2);margin:0}
+.sample-block.do{
+  border-left:2px solid var(--cinnabar);padding:9px 12px 9px 14px;
+  background:color-mix(in srgb,var(--cinnabar) 3%,transparent);
+  border-radius:0 7px 7px 0;
+}
+.sample-block.exc{border-left:2px solid #d9a441;padding-left:14px}
+.sample-block.exc p{color:var(--ink-3);font-size:13.5px}
+.sample-foot{
+  margin-top:20px;padding-top:16px;border-top:1px dashed var(--line);
+  display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+}
+.sample-foot a{font:700 14px var(--serif);color:var(--cinnabar);text-decoration:none}
+.sample-foot span{font:11.5px var(--serif);color:var(--ink-4)}
+
+/* ---------- 方案 3：工具首页 ---------- */
+.p3{
+  padding:0;
+  align-items:center;justify-content:center;text-align:center;
+}
+.p3-inner{max-width:640px;padding:0 28px;width:100%}
+.p3-q{font:700 52px/1.25 var(--serif);margin:0 0 20px}
+.p3-sub{font:15.5px/2 var(--serif);color:var(--ink-3);margin:0 0 34px}
+.p3-btn{
+  display:inline-block;padding:19px 62px;border-radius:10px;
+  background:var(--ink);color:var(--paper);font:700 17px var(--serif);
+  text-decoration:none;box-shadow:0 20px 44px -26px rgba(0,0,0,.6);
+  transition:transform .14s;
+}
+.p3-btn:hover{transform:translateY(-2px)}
+.p3-alt{display:block;margin-top:20px;font:14px var(--serif);color:var(--cinnabar);text-decoration:none}
+.p3-rule{width:100%;height:1px;background:var(--line-2);margin:52px 0 32px}
+.p3-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left}
+.p3-card{
+  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:18px 17px;
+}
+.p3-card .lb{
+  display:block;font:10px var(--serif);letter-spacing:.16em;
+  color:var(--ink-3);margin-bottom:7px;
+}
+.p3-card p{font:13px/1.8 var(--serif);color:var(--ink-2);margin:0}
+.p3-card:first-child{border-top:2px solid var(--line-2)}
+.p3-card.do{border-top:2px solid var(--cinnabar)}
+.p3-card.exc{border-top:2px solid #d9a441}
+
+@media (max-width:1080px){
+  .pv{padding:40px 28px 34px}
+  .pv-tag{left:28px}
+  .pv-note{right:28px;max-width:220px;font-size:11px}
+  .p1-body,.p2-body{grid-template-columns:1fr;gap:34px}
+  .p1-title{font-size:50px}
+  .p2-title{font-size:44px}
+  .p3-q{font-size:36px}
+  .p3-cards{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <div>
+    <h1>首页布局 · 三个方案对比</h1>
+    <p>同一套文案和真实数据，只改布局。往下滚看三个。</p>
+  </div>
+  <nav>
+    <a href="#pv1">方案 1 · 编辑式精简</a>
+    <a href="#pv2">方案 2 · 双栏不对称</a>
+    <a href="#pv3">方案 3 · 工具首页</a>
+  </nav>
+</div>
+
+<!-- ============================================================ -->
+<!-- 方案 1                                                       -->
+<!-- ============================================================ -->
+<section class="pv" id="pv1">
+  <div class="pv-tag">方案 1 · 编辑式精简</div>
+  <div class="pv-note">保留书卷气<br>压掉 4 层冗余信息</div>
+
+  <div class="pv-top">
+    <div class="pv-brand">I CHING · THE BOOK OF CHANGES</div>
+    <div class="pv-nav"><span>登录</span><span>搜索</span><span>目录</span><span>随机一卦</span></div>
+  </div>
+
+  <div class="p1-body">
+    <div class="p1-left">
+      <h1 class="p1-title">周易<br><span class="stroke">六十四卦</span>全解</h1>
+
+      <p class="p1-lead">
+        不是算命，是一套关于「现在该怎么办」的判断方法。<br>
+        <b>三百八十四条处境</b>，每一条给你三样：你在哪、该做什么、什么情况下这条不成立。<br>
+        背后是《史记》《汉书》里的真实先例。
+      </p>
+
+      <div class="p1-actions">
+        <a class="p1-btn-main" href="#">测一测我在哪个阶段</a>
+        <a class="p1-btn-sub" href="#">直接看六个阶段 →</a>
+      </div>
+
+      <div class="p1-free">
+        <a href="#">乾卦</a><span>·</span><a href="#">坤卦</a>
+        <em style="font-style:normal">解读全文免费</em>
+      </div>
+    </div>
+
+    <div class="p1-right">
+      <div class="sample">
+        <div class="sample-head">
+          <span class="eb">测完你会看到这样的东西</span>
+          <span class="src">屯 · 六三</span>
+        </div>
+        <div class="sample-verdict">没有向导就别进山</div>
+        <div class="sample-block">
+          <span class="lb">你在哪</span>
+          <p>你看上一个机会，判断它肯定能成。可你心里清楚，这个行业的水深你没趟过。你甚至连该问谁都不知道。</p>
+        </div>
+        <div class="sample-block do">
+          <span class="lb">该做什么</span>
+          <p>在投入第一笔实质成本之前，先找一个在这个圈子里待满三年的人，问他一个问题——这个行当你最怕的是什么。</p>
+        </div>
+        <div class="sample-block exc">
+          <span class="lb">什么情况下不适用</span>
+          <p>如果这件事亏到底也只损失一笔你能承受的学费，不伤你的根基和后路，那就去闯。</p>
+        </div>
+        <div class="sample-foot">
+          <a href="#">测一测我在哪个阶段 →</a>
+          <span>这是 384 条里的一条</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 方案 2                                                       -->
+<!-- ============================================================ -->
+<section class="pv" id="pv2">
+  <div class="pv-tag">方案 2 · 双栏不对称 ★ 推荐</div>
+  <div class="pv-note">视觉主体从「书名」换成「结果」<br>角色从读者变求助者</div>
+
+  <div class="pv-top">
+    <div class="pv-brand">I CHING · THE BOOK OF CHANGES</div>
+    <div class="pv-nav"><span>登录</span><span>搜索</span><span>目录</span><span>随机一卦</span></div>
+  </div>
+
+  <div class="p2-body">
+    <div class="p2-left">
+      <h1 class="p2-title">周易<br><span class="stroke">六十四卦</span>全解</h1>
+
+      <p class="p2-lead">
+        不是算命，是一套关于「现在该怎么办」的判断方法。<br>
+        <b>384 条处境</b>，每条给你三样：<br>
+        你在哪 · 该做什么 · 什么时候不成立。
+      </p>
+
+      <a class="p2-btn" href="#">测一测我在哪个阶段</a>
+      <a class="p2-sub" href="#">直接看六个阶段 →</a>
+
+      <div class="p2-free">
+        <a href="#">乾卦</a><a href="#">坤卦</a>
+        <em style="font-style:normal">解读全文免费</em>
+      </div>
+    </div>
+
+    <div class="p2-right">
+      <div class="sample">
+        <div class="sample-head">
+          <span class="eb">测完你会看到这样的东西</span>
+          <span class="src">屯 · 六三</span>
+        </div>
+        <div class="sample-verdict">没有向导就别进山</div>
+        <div class="sample-block">
+          <span class="lb">你在哪</span>
+          <p>你看上一个机会，判断它肯定能成。可你心里清楚，这个行业的水深你没趟过。你甚至连该问谁都不知道。</p>
+        </div>
+        <div class="sample-block do">
+          <span class="lb">该做什么</span>
+          <p>在投入第一笔实质成本之前，先找一个在这个圈子里待满三年的人，问他一个问题——这个行当你最怕的是什么。他答得出来，你可以试；他答得含糊，或者你连这样一个人都找不到，这件事现在就停。</p>
+        </div>
+        <div class="sample-block exc">
+          <span class="lb">什么情况下不适用</span>
+          <p>如果这件事亏到底也只损失一笔你能承受的学费，不伤你的根基和后路，那就去闯。看别人游泳看十年，也不如自己呛一口水。</p>
+        </div>
+        <div class="sample-foot">
+          <a href="#">测一测我在哪个阶段 →</a>
+          <span>这是 384 条里的一条</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 方案 3                                                       -->
+<!-- ============================================================ -->
+<section class="pv p3" id="pv3">
+  <div class="pv-tag">方案 3 · 工具首页</div>
+  <div class="pv-note">转化最高<br>但放弃「文化站」定位</div>
+
+  <div class="p3-inner">
+    <h1 class="p3-q">你现在，在哪个阶段？</h1>
+    <p class="p3-sub">
+      384 条处境，来自六十四卦的每一爻。<br>
+      12 道题，三分钟。
+    </p>
+
+    <a class="p3-btn" href="#">开始测一测</a>
+    <a class="p3-alt" href="#">或者直接看六个阶段 →</a>
+
+    <div class="p3-rule"></div>
+
+    <div class="p3-cards">
+      <div class="p3-card">
+        <span class="lb">你在哪</span>
+        <p>你看上一个机会，判断它肯定能成。可你心里清楚，这个行业的水深你没趟过。</p>
+      </div>
+      <div class="p3-card do">
+        <span class="lb">该做什么</span>
+        <p>在投入第一笔实质成本之前，先找一个在这个圈子里待满三年的人，问他一句最怕什么。</p>
+      </div>
+      <div class="p3-card exc">
+        <span class="lb">什么情况下不适用</span>
+        <p>如果这件事亏到底也只损失一笔你能承受的学费，不伤你的根基，那就去闯。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
