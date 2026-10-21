@@ -1734,10 +1734,16 @@
   async function quizCall(payload) {
     const w = quizApi();
     if (!w) return { ok: false, reason: 'no-worker' };
+
+    /* 15 秒超时 —— 国内访问 workers.dev 偶尔会挂很久。
+       没有这个，请求会一直悬着，用户看到的永远是「正在看你的答案」。 */
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
     try {
       const r = await fetch(w, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
+        signal: ctrl.signal,
         body: JSON.stringify({
           ...payload,
           /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回 */
@@ -1745,9 +1751,12 @@
           session: window.AuthUI ? window.AuthUI.session() : '',
         }),
       });
+      clearTimeout(timer);
+      if (!r.ok) return { ok: false, reason: 'http-' + r.status };
       return await r.json();
-    } catch {
-      return { ok: false, reason: 'network' };
+    } catch (e) {
+      clearTimeout(timer);
+      return { ok: false, reason: e && e.name === 'AbortError' ? 'timeout' : 'network' };
     }
   }
 
@@ -1909,13 +1918,50 @@
     if (!res.ok) {
       if (res.reason === 'no-credits') { renderQuizPaywall(); return; }
       if (res.reason === 'need-login') { renderQuizGate('登录已过期', '请重新登录。'); return; }
-      toast('提交失败：' + (res.reason || '未知'));
+
+      /* 其余失败（网络 / 超时 / 服务端错误）绝不能只弹个 toast 就把人晾在
+         「正在看你的答案」上。必须给一个能点的页面。 */
+      renderQuizError(res.reason, r.stage);
       return;
     }
 
-    const situ = await loadSitu();
-    const picks = window.Quiz.pickSituations(res.stage, situ, 3);
-    renderQuizResult(res.stage, picks, res.remaining);
+    /* 结果渲染也不能裸奔 —— 数据坏了就退化到错误页，不能白屏 */
+    try {
+      const situ = await loadSitu();
+      const picks = window.Quiz.pickSituations(res.stage, situ, 3);
+      renderQuizResult(res.stage, picks, res.remaining);
+    } catch (e) {
+      renderQuizError('render', r.stage);
+    }
+  }
+
+  /** 提交失败时的兜底页：说明 + 重试 + 两条退路 */
+  function renderQuizError(reason, stage) {
+    const why = {
+      timeout: '请求超时了 —— 大概是网络到服务器这一段太慢。',
+      network: '网络没连上服务器。',
+      'no-worker': '配置缺失，找不到接口地址。',
+      render: '你的答案收到了，但结果没能画出来。',
+      badstage: '结果解析出了问题。',
+    }[reason] || '提交时出了点问题（' + esc(String(reason || '未知')) + '）。';
+
+    renderStandalone([
+      '<section class="situ-view quiz-view">',
+      '  <div class="quiz-err">',
+      '    <div class="quiz-err-tt">答案收到了，但没送到</div>',
+      '    <p class="quiz-err-why">' + why + '</p>',
+      '    <p class="quiz-err-hint">这不影响你答的题。点下面重试一次，通常就好了。</p>',
+      '    <button class="quiz-err-btn" id="quizRetry">重试一次</button>',
+      '    <div class="quiz-err-alt">',
+      '      <p>一直不行的话，也可以直接看：</p>',
+      '      <p><a href="#/s">六个阶段是怎么分的</a> · <a href="#/s/' + esc(stage || 'P1') + '">这一阶段的全部处境</a></p>',
+      '    </div>',
+      '  </div>',
+      '</section>',
+    ].join('\n'));
+
+    const b = document.getElementById('quizRetry');
+    if (b) b.onclick = () => { location.hash = '#/quiz'; };
   }
 
   function renderQuizResult(code, picks, remaining) {

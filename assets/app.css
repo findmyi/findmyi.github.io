@@ -1693,3 +1693,67 @@ img { max-width: 100%; display: block; }
   .quiz-share-btn { width: 100%; padding: 13px 18px; }
   .sc-img { max-width: 100%; }
 }
+
+/* ==========================================================================
+   自测提交失败时的兜底页
+   —— 原来只用 toast 提示，页面永远停在「正在看你的答案」。
+   ========================================================================== */
+.quiz-err {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 56px 24px 60px;
+  text-align: center;
+}
+.quiz-err-tt {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--ink);
+}
+.quiz-err-why {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--ink-2);
+  margin: 0 0 10px;
+}
+.quiz-err-hint {
+  font-family: var(--serif);
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--ink-3);
+  margin: 0 0 28px;
+}
+.quiz-err-btn {
+  padding: 13px 40px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--cinnabar);
+  color: #fff;
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s, transform .14s;
+}
+.quiz-err-btn:hover { background: var(--cinnabar-2, #8d2a23); transform: translateY(-1px); }
+
+.quiz-err-alt {
+  margin-top: 38px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  font-family: var(--serif);
+  font-size: 13px;
+  line-height: 2;
+  color: var(--ink-3);
+}
+.quiz-err-alt p { margin: 0; }
+.quiz-err-alt a { color: var(--cinnabar); text-decoration: none; }
+.quiz-err-alt a:hover { text-decoration: underline; }
+
+@media (max-width: 620px) {
+  .quiz-err { padding: 40px 18px 44px; }
+  .quiz-err-tt { font-size: 20px; }
+  .quiz-err-btn { width: 100%; }
+}
