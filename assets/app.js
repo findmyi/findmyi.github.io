@@ -1962,12 +1962,48 @@
       '  </div>',
       '  <h2 class="quiz-sub">最像你的三条处境</h2>',
       '  <div class="quiz-picks">' + items + '</div>',
+      '  <div class="quiz-share">',
+      '    <div class="quiz-share-tt">把这一页带走</div>',
+      '    <p class="quiz-share-sub">' +
+      '      生成一张图，存下来或者发出去。图上有你所在的阶段和一条判断。' +
+      '    </p>',
+      '    <button class="quiz-share-btn" id="quizShareBtn">生成分享卡片</button>',
+      '    <div id="quizShareOut" class="sc-host"></div>',
+      '  </div>',
       '  <div class="quiz-foot">',
       '    <p>' + (remaining === -1 ? '你的自测不限次数。' : '还剩 ' + remaining + ' 次自测。') + '</p>',
       '    <p><a href="#/quiz">再测一次</a> · <a href="#/s/' + esc(code) + '">看这一阶段的全部 64 条</a> · <a href="#/toc">按卦序读</a></p>',
       '  </div>',
       '</section>',
     ].join('\n'));
+
+    // 分享卡片
+    const shareBtn = document.getElementById('quizShareBtn');
+    if (shareBtn) {
+      shareBtn.onclick = async () => {
+        if (!window.ShareCard) { toast('分享组件未加载'); return; }
+        shareBtn.disabled = true;
+        shareBtn.textContent = '正在生成…';
+
+        // 等字体就绪，否则 Canvas 会用回退字体
+        try { await document.fonts.ready; } catch { /* 忽略 */ }
+
+        const first = picks && picks[0] ? picks[0] : {};
+        const cv = window.ShareCard.render({
+          stage: code,
+          stageName: st.name,
+          ask: st.ask,
+          verdict: first.verdict || '',
+          gua: first.gua || '',
+          pos: first.pos || '',
+          advice: st.advice || '',
+        }, location.origin + location.pathname);
+
+        window.ShareCard.showIn(document.getElementById('quizShareOut'), cv);
+        shareBtn.textContent = '重新生成';
+        shareBtn.disabled = false;
+      };
+    }
   }
 
   /** 买积分包：复用现有下单 + 支付弹层 */

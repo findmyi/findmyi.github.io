@@ -1614,3 +1614,82 @@ img { max-width: 100%; display: block; }
   .hs-q { font-size: 23px; }
 }
 
+
+/* ==========================================================================
+   分享卡片
+   ========================================================================== */
+.quiz-share {
+  margin: 48px 0 0;
+  padding: 28px 26px;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--paper-2) 55%, transparent);
+  text-align: center;
+}
+.quiz-share-tt {
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 700;
+  margin-bottom: 9px;
+}
+.quiz-share-sub {
+  font-family: var(--serif);
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--ink-3);
+  margin: 0 0 20px;
+}
+.quiz-share-btn {
+  display: inline-block;
+  padding: 13px 36px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--cinnabar);
+  color: #fff;
+  font-family: var(--serif);
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s, transform .14s;
+}
+.quiz-share-btn:hover:not(:disabled) {
+  background: var(--cinnabar-2, #8d2a23);
+  transform: translateY(-1px);
+}
+.quiz-share-btn:disabled { opacity: .6; cursor: default; }
+
+.sc-host { margin-top: 22px; }
+.sc-wrap { text-align: center; }
+.sc-img {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 44px -28px rgba(0,0,0,.45);
+}
+.sc-hint {
+  font-family: var(--serif);
+  font-size: 12px;
+  color: var(--ink-4, #9a938a);
+  margin-bottom: 12px;
+}
+.sc-btn {
+  padding: 11px 30px;
+  border: 1px solid var(--cinnabar);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cinnabar);
+  font-family: var(--serif);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sc-btn:hover { background: var(--cinnabar); color: #fff; }
+
+@media (max-width: 620px) {
+  .quiz-share { padding: 22px 17px; }
+  .quiz-share-btn { width: 100%; padding: 13px 18px; }
+  .sc-img { max-width: 100%; }
+}
