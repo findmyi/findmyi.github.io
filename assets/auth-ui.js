@@ -15,6 +15,9 @@
 (function (global) {
   'use strict';
 
+  /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回。测试期免登录、免账号、免费用。 */
+  const FREE_TEST = true;
+
   const SKEY = 'zhouyi.session';
   const EKEY = 'zhouyi.email';
 
@@ -23,6 +26,7 @@
   }
 
   function session() {
+    if (FREE_TEST) return 'FREE_TEST';
     try { return localStorage.getItem(SKEY) || ''; } catch { return ''; }
   }
 
@@ -57,6 +61,7 @@
   let _meAt = 0;
 
   async function me(force) {
+    if (FREE_TEST) return { ok: true, email: 'free-test@local', tiers: ['PREM'] };
     const t = session();
     if (!t) return { ok: false, reason: 'no-session' };
     if (!force && _me && Date.now() - _meAt < 30_000) return _me;
@@ -66,15 +71,17 @@
     return r;
   }
 
-  function isLoggedIn() { return !!session(); }
+  function isLoggedIn() { return FREE_TEST || !!session(); }
 
   function hasTier(tier) {
+    if (FREE_TEST) return true;
     if (!_me || !_me.tiers) return false;
     if (_me.tiers.indexOf('FULL') !== -1) return true;
     return _me.tiers.indexOf(tier) !== -1;
   }
 
   function anyTier() {
+    if (FREE_TEST) return true;
     return !!(_me && _me.tiers && _me.tiers.length);
   }
 

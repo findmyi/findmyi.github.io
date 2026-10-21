@@ -9,6 +9,9 @@
 (function () {
   'use strict';
 
+  /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回。测试期全文免费。 */
+  const FREE_TEST = true;
+
   /* ---------- 工具 ---------- */
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -87,6 +90,7 @@
      * @returns {boolean}
      */
     isUnlocked(articleId) {
+      if (FREE_TEST) return true;
       if (!this.needsPaywall(articleId)) return true;   // 免费内容
       if (!this.ready) return false;
       const tiers = this.tiers();
@@ -1252,6 +1256,8 @@
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           action: 'unlock',
+          /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回 */
+          freeTest: true,
           key,
           session: sess,
           device: window.LicenseServer ? window.LicenseServer.deviceId() : '',
@@ -1732,7 +1738,12 @@
       const r = await fetch(w, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ ...payload, session: window.AuthUI ? window.AuthUI.session() : '' }),
+        body: JSON.stringify({
+          ...payload,
+          /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回 */
+          freeTest: true,
+          session: window.AuthUI ? window.AuthUI.session() : '',
+        }),
       });
       return await r.json();
     } catch {

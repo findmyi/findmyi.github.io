@@ -627,6 +627,9 @@ export default {
 
     const { action, key: rawKey, device, session } = body || {};
 
+    /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回。测试期免登录免费下发。 */
+    const FREE_TEST = !!(body && body.freeTest === true);
+
     /* ================= 账号 =================
        邮箱密码登录由 AUTH_MODE 控制：
          'google'（默认）→ 只允许 Google，邮箱相关接口一律拒绝
@@ -658,6 +661,18 @@ export default {
 
     /* ================= 处境自测：查额度 ================= */
     if (action === 'credits') {
+      /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回 */
+      if (FREE_TEST) {
+        return json({
+          ok: true,
+          remaining: -1,
+          unlimited: true,
+          email: 'free-test@local',
+          packs: Object.entries(CREDIT_PACKS).map(([id, n]) => ({
+            id, count: n, price: PRICE[id], title: TITLE[id],
+          })),
+        });
+      }
       const sess = await auth.readSession(env, session);
       if (!sess) return json({ ok: false, reason: 'need-login' });
       const left = await remainingCredits(env, sess.email);
@@ -674,6 +689,12 @@ export default {
 
     /* ================= 处境自测：扣一次额度，返回阶段 ================= */
     if (action === 'quiz') {
+      /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回 */
+      if (FREE_TEST) {
+        const stageOnly = String(body.stage || '').toUpperCase();
+        if (!/^P[1-6]$/.test(stageOnly)) return json({ ok: false, reason: 'badstage' });
+        return json({ ok: true, stage: stageOnly, remaining: -1, unlimited: true });
+      }
       const sess = await auth.readSession(env, session);
       if (!sess) return json({ ok: false, reason: 'need-login' });
 
@@ -868,6 +889,16 @@ export default {
     if (action === 'unlock') {
       const ids = Array.isArray(body.ids) ? body.ids.slice(0, 8) : [];
       if (!ids.length) return json({ ok: false, reason: 'noids' });
+
+      /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回 */
+      if (FREE_TEST) {
+        const out = {};
+        for (const id of ids) {
+          if (!/^[a-z0-9_]{1,24}$/.test(id)) continue;
+          out[id] = await env.KEYS.get('content:' + id);
+        }
+        return json({ ok: true, via: 'free-test', tier: 'PREM', contents: out });
+      }
 
       /* ---- 路径 ①：已登录 → 按邮箱的购买记录放权（主路径） ---- */
       const sess = await auth.readSession(env, session);
