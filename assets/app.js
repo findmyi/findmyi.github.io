@@ -1664,7 +1664,7 @@
      文案纪律：对外一律叫「处境自测」，不出现「测卦 / 算命 / 预测 / 吉凶」。
      ========================================================================== */
 
-  let quizState = null;   // { answers, step }
+  let quizState = null;   // { answers, step, left, track }
 
   function quizApi() {
     return (typeof window.Payment !== 'undefined') ? window.Payment.workerUrl() : '';
@@ -1700,9 +1700,41 @@
     const left = c.remaining;
     if (left === 0) { renderQuizPaywall(); return; }
 
-    // 开始答题
-    quizState = { answers: {}, step: 0, left };
-    renderQuizQuestion();
+    // 先问「你在意哪件事」，再决定出哪套题
+    quizState = { answers: {}, step: 0, left, track: '' };
+    renderQuizScreen();
+  }
+
+  /** 分流题：你现在最想理清楚哪件事 */
+  function renderQuizScreen() {
+    const sc = window.Quiz.screen;
+    const opts = sc.opts.map((o, k) =>
+      '<button class="quiz-opt" data-track="' + esc(o.track) + '">' +
+        '<span class="quiz-opt-k">' + 'ABCDE'[k] + '</span>' +
+        '<span class="quiz-opt-t">' + esc(o.t) + '</span>' +
+      '</button>'
+    ).join('');
+
+    renderStandalone([
+      '<section class="situ-view quiz-view">',
+      '  <div class="quiz-meta">',
+      '    <span>开始之前</span>',
+      '    <span></span>',
+      '    <span>' + (quizState.left === -1 ? '不限次' : '还剩 ' + quizState.left + ' 次') + '</span>',
+      '  </div>',
+      '  <h2 class="quiz-q">' + esc(sc.q) + '</h2>',
+      '  <p class="quiz-hint">后面有 12 道题，大概三分钟。</p>',
+      '  <div class="quiz-opts">' + opts + '</div>',
+      '</section>',
+    ].join('\n'));
+
+    $$('[data-track]').forEach((el) => {
+      el.onclick = () => {
+        quizState.track = el.dataset.track;
+        quizState.step = 0;
+        renderQuizQuestion();
+      };
+    });
   }
 
   function renderQuizGate(title, sub) {
@@ -1757,7 +1789,7 @@
   }
 
   function renderQuizQuestion() {
-    const Q = window.Quiz.questions;
+    const Q = window.Quiz.questionsFor(quizState.track);
     const i = quizState.step;
     const q = Q[i];
     if (!q) { finishQuiz(); return; }
@@ -1775,7 +1807,7 @@
       '  <div class="quiz-bar"><div class="quiz-bar-fill" style="width:' + pct + '%"></div></div>',
       '  <div class="quiz-meta">',
       '    <span>' + (i + 1) + ' / ' + Q.length + '</span>',
-      '    <span>' + esc(q.cat) + '</span>',
+      '    <span>' + esc(q.cat || '') + '</span>',
       '    <span>' + (quizState.left === -1 ? '不限次' : '还剩 ' + quizState.left + ' 次') + '</span>',
       '  </div>',
       '  <h2 class="quiz-q">' + esc(q.q) + '</h2>',
@@ -1800,7 +1832,7 @@
   }
 
   async function finishQuiz() {
-    const r = window.Quiz.score(quizState.answers);
+    const r = window.Quiz.score(quizState.answers, quizState.track);
     renderStandalone([
       '<section class="situ-view quiz-view">',
       '  <div class="quiz-loading">正在看你的答案…</div>',
