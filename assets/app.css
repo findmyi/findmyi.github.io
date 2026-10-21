@@ -1553,3 +1553,68 @@ img { max-width: 100%; display: block; }
   .hs-block p { font-size: 13.5px; -webkit-line-clamp: 4; }
   .hs-block.is-exc p { -webkit-line-clamp: 3; }
 }
+
+/* ==========================================================================
+   登录墙
+   ========================================================================== */
+.wall {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 90px 24px 100px;
+  text-align: center;
+}
+.wall-eyebrow {
+  font-family: var(--serif);
+  font-size: 11px;
+  letter-spacing: .18em;
+  color: var(--cinnabar);
+  margin-bottom: 18px;
+}
+.wall-title {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0 0 16px;
+  color: var(--ink);
+}
+.wall-lede {
+  font-family: var(--serif);
+  font-size: 14.5px;
+  line-height: 2;
+  color: var(--ink-3);
+  margin: 0 auto 30px;
+  max-width: 420px;
+}
+.wall-btn {
+  display: inline-block;
+  padding: 15px 42px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--cinnabar);
+  color: #fff;
+  font-family: var(--serif);
+  font-size: 15.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s, transform .14s;
+}
+.wall-btn:hover { background: var(--cinnabar-2, #8d2a23); transform: translateY(-1px); }
+
+.wall-foot {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  font-family: var(--serif);
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--ink-3);
+}
+.wall-foot a { color: var(--cinnabar); text-decoration: none; }
+.wall-foot a:hover { text-decoration: underline; }
+
+@media (max-width: 620px) {
+  .wall { padding: 56px 20px 70px; }
+  .wall-title { font-size: 23px; }
+  .wall-btn { width: 100%; padding: 14px 20px; }
+}
