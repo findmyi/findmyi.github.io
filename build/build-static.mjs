@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 
-const SITE = 'https://findmyi.github.io/zhouyi';
+const SITE = 'https://findmyi.github.io';
 const SITE_NAME = '周易六十四卦';
 
 const OUT = join(ROOT, 'p');
