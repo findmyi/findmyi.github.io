@@ -1930,31 +1930,51 @@
       '</section>',
     ].join('\n'));
 
-    const res = await quizCall({ action: 'quiz', stage: r.stage });
-    if (!res.ok) {
-      if (res.reason === 'no-credits') { renderQuizPaywall(); return; }
-      if (res.reason === 'need-login') { renderQuizGate('登录已过期', '请重新登录。'); return; }
+    /* ------------------------------------------------------------------
+       出结果绝不能依赖网络。
 
-      /* 其余失败（网络 / 超时 / 服务端错误）绝不能只弹个 toast 就把人晾在
-         「正在看你的答案」上。必须给一个能点的页面。 */
-      renderQuizError(res.reason, r.stage);
-      return;
+       阶段是前端 window.Quiz.score() 算的，
+       三条处境来自静态文件 data/situ.json（GitHub Pages，国内能开）。
+       Worker 只负责「记额度 / 记历史」—— 那是记账，不是计算。
+       让记账失败去阻塞出结果，是架构错误。
+
+       大陆访问 *.workers.dev 经常超时，这个失败是常态不是意外。
+       ------------------------------------------------------------------ */
+
+    let remaining = -1;
+    let credited = false;
+
+    try {
+      const res = await quizCall({ action: 'quiz', stage: r.stage });
+      if (res && res.ok) {
+        remaining = typeof res.remaining === 'number' ? res.remaining : -1;
+        credited = true;
+      } else if (res && res.reason === 'no-credits') {
+        renderQuizPaywall();
+        return;
+      }
+      /* 其余失败一律忽略：网络不通、超时、5xx —— 都不影响出结果 */
+    } catch (e) {
+      /* 彻底吞掉，继续往下走 */
     }
 
-    /* 结果渲染也不能裸奔 —— 数据坏了就退化到错误页，不能白屏 */
+    /* 拿处境数据。失败就退化成只有阶段信息，不能白屏。 */
+    let picks = [];
     try {
       const situ = await loadSitu();
-      const picks = window.Quiz.pickSituations(res.stage, situ, 3);
-      if (window.Feedback) {
-        window.Feedback.setContext({
-          from: 'quiz',
-          label: '处境自测 · ' + (r.stage || ''),
-        });
-      }
-      renderQuizResult(res.stage, picks, res.remaining);
+      picks = window.Quiz.pickSituations(r.stage, situ, 3) || [];
     } catch (e) {
-      renderQuizError('render', r.stage);
+      picks = [];
     }
+
+    if (window.Feedback) {
+      window.Feedback.setContext({
+        from: 'quiz',
+        label: '处境自测 · ' + (r.stage || ''),
+      });
+    }
+
+    renderQuizResult(r.stage, picks, remaining, credited);
   }
 
   /** 提交失败时的兜底页：说明 + 重试 + 两条退路 */
@@ -1986,7 +2006,7 @@
     if (b) b.onclick = () => { location.hash = '#/quiz'; };
   }
 
-  function renderQuizResult(code, picks, remaining) {
+  function renderQuizResult(code, picks, remaining, credited) {
     const st = window.Quiz.stageOf(code);
     if (!st) { location.hash = '#/s'; return; }
 
@@ -2017,7 +2037,10 @@
       '    <div class="quiz-advice-block is-caution"><span>但什么情况下这套不适用</span><p>' + esc(st.caution) + '</p></div>',
       '  </div>',
       '  <h2 class="quiz-sub">最像你的三条处境</h2>',
-      '  <div class="quiz-picks">' + items + '</div>',
+            picks.length
+        ? '  <div class="quiz-picks">' + items + '</div>'
+        : '  <div class="quiz-picks-empty">这一阶段的三条处境没能加载出来（数据文件读取失败）。'
+          + '不影响你已经测出的阶段，可以直接<a href="#/s/' + esc(code) + '">看这一阶段的全部 64 条</a>。</div>',
       '  <div class="quiz-share">',
       '    <div class="quiz-share-tt">把这一页带走</div>',
       '    <p class="quiz-share-sub">' +
@@ -2027,7 +2050,7 @@
       '    <div id="quizShareOut" class="sc-host"></div>',
       '  </div>',
       '  <div class="quiz-foot">',
-      '    <p>' + (remaining === -1 ? '你的自测不限次数。' : '还剩 ' + remaining + ' 次自测。') + '</p>',
+      '    <p>' + (remaining === -1 ? '你的自测不限次数。' : '还剩 ' + remaining + ' 次自测。') + (credited === false ? '（本次结果没能同步到账号，仅供参考）' : '') + '</p>',
       '    <p><a href="#/quiz">再测一次</a> · <a href="#/s/' + esc(code) + '">看这一阶段的全部 64 条</a> · <a href="#/toc">按卦序读</a> · <a href="#/feedback" id="quizFbLink">反馈</a></p>',
       '  </div>',
       '</section>',

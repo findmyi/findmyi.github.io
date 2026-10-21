@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    周易六十四卦 · 应用样式
    设计语言：宣纸底色 + 墨色文本 + 朱砂点缀，古典而克制
    ========================================================================== */
@@ -1889,3 +1889,17 @@ img { max-width: 100%; display: block; }
   .quiz-err-tt { font-size: 20px; }
   .quiz-err-btn { width: 100%; }
 }
+
+/* 三条处境加载失败时的退化提示 */
+.quiz-picks-empty {
+  font-family: var(--serif);
+  font-size: 14px;
+  line-height: 2;
+  color: var(--ink-3);
+  padding: 22px 20px;
+  border: 1px dashed var(--line-2);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--paper-2) 40%, transparent);
+}
+.quiz-picks-empty a { color: var(--cinnabar); text-decoration: none; }
+.quiz-picks-empty a:hover { text-decoration: underline; }

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>断网出结果测试</title>
+<style>body{margin:0;font:12px/1.6 monospace;padding:8px}
+pre{white-space:pre-wrap;margin:0}
+#view iframe{width:1100px;height:1400px;border:1px solid #ddd;margin-top:10px}</style></head>
+<body>
+<pre id="o">running…</pre>
+<div id="view"></div>
+<script>
+const log = []; const add = (s) => { log.push(s); document.getElementById('o').textContent = log.join('\n'); };
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+function makeFrame() {
+  return new Promise((res) => {
+    const f = document.createElement('iframe');
+    f.src = '/index.html';
+    f.style.cssText = 'width:1100px;height:1400px;border:0;position:absolute;left:-99999px';
+    document.body.appendChild(f);
+    f.addEventListener('load', () => res(f));
+  });
+}
+
+(async function () {
+  try {
+    const F = await makeFrame();
+    const W = F.contentWindow, D = F.contentDocument;
+    W.localStorage.clear();
+    await sleep(3000);
+
+    // 把所有外部请求全部打断 —— 模拟她那边 Worker 和 CDN 都不通
+    const realFetch = W.fetch;
+    W.fetch = function (url) {
+      const u = String(url);
+      add('[拦截] ' + u.replace('https://', '').slice(0, 48));
+      return Promise.reject(new TypeError('Failed to fetch'));
+    };
+
+    W.location.hash = '#/quiz';
+    await sleep(2200);
+    add('分流选项: ' + D.querySelectorAll('[data-track]').length);
+
+    const t = D.querySelectorAll('[data-track]');
+    if (t.length) t[0].click();
+    await sleep(1000);
+
+    for (let i = 0; i < 12; i++) {
+      const o = D.querySelectorAll('.quiz-opt');
+      if (!o.length) break;
+      o[0].click();
+      await sleep(280);
+    }
+
+    add('--- 答完，所有网络都断了，看能不能出结果 ---');
+    let ok = false;
+    for (let s = 0; s < 20; s++) {
+      await sleep(1000);
+      const h1 = D.querySelector('.situ-h1');
+      const loading = D.querySelector('.quiz-loading');
+      if (h1) {
+        add('✓ 第 ' + (s + 1) + ' 秒出结果: ' + h1.textContent);
+        add('  阶段说明: ' + ((D.querySelector('.situ-lede') || {}).textContent || '').slice(0, 40));
+        add('  三条处境容器: ' + (D.querySelector('.quiz-picks') ? '有' : '无'));
+        add('  退化提示: ' + (D.querySelector('.quiz-picks-empty') ? '有 ✓' : '无'));
+        add('  错误页: ' + (D.querySelector('.quiz-err') ? '有（不该有）' : '无 ✓'));
+        ok = true;
+        break;
+      }
+      if (!loading) { add('第 ' + (s + 1) + ' 秒 loading 消失，无结果也无错误页'); break; }
+      if (s === 19) add('✗ 20 秒仍无结果');
+    }
+
+    // 把结果页搬到可见区截图
+    if (ok) {
+      document.getElementById('view').innerHTML = '';
+      F.style.position = 'static';
+      F.style.cssText = 'width:1100px;height:1400px;border:1px solid #ddd;margin-top:8px';
+      window.scrollTo(0, 0);
+    }
+
+    add('DONE');
+  } catch (e) {
+    add('ERR: ' + e.message);
+    add('DONE');
+  }
+})();
+</script>
+</body></html>
