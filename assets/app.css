@@ -1436,7 +1436,7 @@ img { max-width: 100%; display: block; }
   align-items: center;
   gap: 24px;
   flex-wrap: wrap;
-  margin-top: 30px;
+  margin-top: 48px;
 }
 .hero-actions .btn.solid {
   flex: 0 0 auto;
