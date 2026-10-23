@@ -32,19 +32,13 @@ export const mock = {
   name: 'mock',
 
   // 注意：所有 provider 的方法签名统一是 (env, params)
-  async createOrder(env, { outTradeNo, amount, title, returnUrl }) {
-    // 假的收银台：本站提供一个 /mock-pay 页面，点一下就"付款成功"
-    const qs = new URLSearchParams({
-      no: outTradeNo || '',
-      amount: String(amount || 0),
-      title: title || '',
-    });
-    if (returnUrl) qs.set('ret', returnUrl);
-    return ok({ payUrl: '/mock-pay?' + qs.toString(), qrCode: null, providerTradeNo: 'MOCK-' + outTradeNo });
+  async createOrder(env, { outTradeNo, amount, title }) {
+    // 不再提供假收银台。生产收款走「收款码 + 管理员 confirm」。
+    return ok({ payUrl: null, qrCode: null, providerTradeNo: 'MANUAL-' + outTradeNo });
   },
 
   async verifyNotify() {
-    // mock 不走外部回调，由内部接口直接驱动
+    // mock 不走外部回调，由管理员 confirm 放款
     return null;
   },
 };
