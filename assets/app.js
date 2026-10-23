@@ -9,9 +9,6 @@
 (function () {
   'use strict';
 
-  /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回。测试期全文免费。 */
-  const FREE_TEST = true;
-
   /* ---------- 工具 ---------- */
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -90,7 +87,6 @@
      * @returns {boolean}
      */
     isUnlocked(articleId) {
-      if (FREE_TEST) return true;
       if (!this.needsPaywall(articleId)) return true;   // 免费内容
       if (!this.ready) return false;
       const tiers = this.tiers();
@@ -768,11 +764,14 @@
       const primary = i === 0 && !c.isManual;
       const glyph = c.isManual ? '✉' : '↗';
       const ext = c.isManual ? '' : ' target="_blank" rel="noopener noreferrer"';
+      const href = c.isManual ? '#' : esc(c.url);
+      const manualAttr = c.isManual ? ' data-copy-wx="' + esc(c.url) + '"' : '';
       return '<a class="pw-buy-btn' + (primary ? '' : ' is-secondary') +
-        '" href="' + esc(c.url) + '"' + ext + '>' +
+        '" href="' + href + '"' + ext + manualAttr + '>' +
         '<span class="pw-buy-glyph" aria-hidden="true">' + glyph + '</span>' +
         '<span class="pw-buy-main">' +
-          '<span class="pw-buy-name">' + esc(c.name) + '购买</span>' +
+          '<span class="pw-buy-name">' + esc(c.name) +
+            (c.isManual ? ' · 微信 ' + esc(c.url) : '购买') + '</span>' +
           '<span class="pw-buy-desc">' + esc(c.desc) + '</span>' +
         '</span>' +
         (c.fee ? '<span class="pw-buy-fee">费率 ' + esc(c.fee) + '</span>' : '') +
@@ -1124,6 +1123,22 @@
       close.dataset.bound = '1';
       close.addEventListener('click', closePayModal);
     }
+
+    $$('[data-copy-wx]').forEach((el) => {
+      if (el.dataset.bound === '1') return;
+      el.dataset.bound = '1';
+      el.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const wx = el.dataset.copyWx || '';
+        if (!wx) return;
+        try {
+          await navigator.clipboard.writeText(wx);
+          toast('微信号已复制：' + wx);
+        } catch {
+          toast('微信号：' + wx);
+        }
+      });
+    });
     const modal = document.getElementById('pwPayModal');
     if (modal && modal.dataset.bound !== '1') {
       modal.dataset.bound = '1';
@@ -1185,6 +1200,13 @@
       '          内容持续校订，已购的版本更新不再收费。',
       '        </div>',
       '      </div>',
+      (function () {
+        const wx = (typeof window.Payment !== 'undefined' && window.Payment.supportWeChat)
+          ? window.Payment.supportWeChat() : '';
+        return wx
+          ? '      <div class="pw-support">付费不了，联系微信 <b data-copy-wx="' + esc(wx) + '">' + esc(wx) + '</b>（点一下复制）</div>'
+          : '';
+      })(),
       '    </div>',
       '  </div>',
       '</section>',
@@ -1263,8 +1285,6 @@
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           action: 'unlock',
-          /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回 */
-          freeTest: true,
           key,
           session: sess,
           device: window.LicenseServer ? window.LicenseServer.deviceId() : '',
@@ -1762,8 +1782,6 @@
         signal: ctrl.signal,
         body: JSON.stringify({
           ...payload,
-          /* TEMP-FREE-TEST-20261022 · 今晚 03:00 改回 */
-          freeTest: true,
           session: window.AuthUI ? window.AuthUI.session() : '',
         }),
       });
@@ -1776,20 +1794,16 @@
     }
   }
 
-  /** #/quiz —— 入口 + 答题 */
+  /** #/quiz —— 入口 + 答题（免登录免费测） */
   async function showQuiz() {
     if (!window.Quiz) { toast('题库未加载'); return; }
 
-    if (!window.AuthUI || !window.AuthUI.isLoggedIn()) {
-      renderQuizGate('开始之前，需要先登录。', '登录后我们才能记住你用了几次。');
-      return;
+    // 任何人都可以不用登录免费测：额度只作展示，不拦人
+    let left = -1;
+    if (window.AuthUI && window.AuthUI.isLoggedIn()) {
+      const c = await quizCall({ action: 'credits' });
+      if (c && c.ok) left = c.remaining;
     }
-
-    const c = await quizCall({ action: 'credits' });
-    if (!c.ok && c.reason === 'need-login') { renderQuizGate('登录已过期', '请重新登录。'); return; }
-
-    const left = c.remaining;
-    if (left === 0) { renderQuizPaywall(); return; }
 
     // 先问「你在意哪件事」，再决定出哪套题
     quizState = { answers: {}, step: 0, left, track: '' };

@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    周易六十四卦 · 付费墙样式
    --------------------------------------------------------------------------
    设计原则（按调研结论）：
@@ -273,6 +273,21 @@
 }
 .pw-trust-item.is-no b { color: var(--cinnabar); }
 .pw-trust-item.is-yes b { color: var(--jade); }
+
+.pw-support {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  background: #fbf7ee;
+  border: 1px solid #e4d5b5;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.pw-support b {
+  color: var(--cinnabar);
+  cursor: pointer;
+  border-bottom: 1px dashed var(--cinnabar);
+}
 
 /* 免责声明 */
 .pw-disclaimer {
