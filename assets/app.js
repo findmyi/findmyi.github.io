@@ -137,9 +137,15 @@
 
   /* ---------- 资源加载 ---------- */
   async function getJSON(url) {
-    const r = await fetch(url, { cache: 'no-cache' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      const r = await fetch(url, { cache: 'no-cache', signal: ctrl.signal });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    } finally {
+      clearTimeout(timer);
+    }
   }
   async function getText(url) {
     const r = await fetch(url, { cache: 'no-cache' });
@@ -1820,7 +1826,7 @@
       '</button>'
     ).join('');
 
-    renderStandalone([
+    renderQuizFlow([
       '<section class="situ-view quiz-view">',
       '  <div class="quiz-meta">',
       '    <span>开始之前</span>',
@@ -1907,7 +1913,7 @@
       '</button>'
     ).join('');
 
-    renderStandalone([
+    renderQuizFlow([
       '<section class="situ-view quiz-view">',
       '  <div class="quiz-bar"><div class="quiz-bar-fill" style="width:' + pct + '%"></div></div>',
       '  <div class="quiz-meta">',
@@ -1938,44 +1944,39 @@
 
   async function finishQuiz() {
     const r = window.Quiz.score(quizState.answers, quizState.track);
-    renderStandalone([
+    renderQuizFlow([
       '<section class="situ-view quiz-view">',
       '  <div class="quiz-loading">正在看你的答案…</div>',
       '</section>',
     ].join('\n'));
 
-    /* ------------------------------------------------------------------
-       出结果绝不能依赖网络。
-
-       阶段是前端 window.Quiz.score() 算的，
-       三条处境来自静态文件 data/situ.json（GitHub Pages，国内能开）。
-       Worker 只负责「记额度 / 记历史」—— 那是记账，不是计算。
-       让记账失败去阻塞出结果，是架构错误。
-
-       大陆访问 *.workers.dev 经常超时，这个失败是常态不是意外。
-       ------------------------------------------------------------------ */
-
+    /* 出结果不依赖网络：未登录免费本地测，绝不打 Worker 卡住 */
+    const logged = !!(window.AuthUI && window.AuthUI.isLoggedIn());
     let remaining = -1;
     let credited = false;
 
-    try {
-      const res = await quizCall({ action: 'quiz', stage: r.stage });
-      if (res && res.ok) {
-        remaining = typeof res.remaining === 'number' ? res.remaining : -1;
-        credited = true;
-      } else if (res && res.reason === 'no-credits') {
-        renderQuizPaywall();
-        return;
-      }
-      /* 其余失败一律忽略：网络不通、超时、5xx —— 都不影响出结果 */
-    } catch (e) {
-      /* 彻底吞掉，继续往下走 */
+    if (logged) {
+      try {
+        const res = await Promise.race([
+          quizCall({ action: 'quiz', stage: r.stage }),
+          new Promise((resolve) => setTimeout(() => resolve({ ok: false, reason: 'timeout' }), 8000)),
+        ]);
+        if (res && res.ok) {
+          remaining = typeof res.remaining === 'number' ? res.remaining : -1;
+          credited = true;
+        } else if (res && res.reason === 'no-credits') {
+          renderQuizPaywall();
+          return;
+        }
+      } catch (e) { /* 记账失败不挡出结果 */ }
     }
 
-    /* 拿处境数据。失败就退化成只有阶段信息，不能白屏。 */
     let picks = [];
     try {
-      const situ = await loadSitu();
+      const situ = await Promise.race([
+        loadSitu(),
+        new Promise((resolve) => setTimeout(() => resolve({ items: [] }), 8000)),
+      ]);
       picks = window.Quiz.pickSituations(r.stage, situ, 3) || [];
     } catch (e) {
       picks = [];
@@ -2297,6 +2298,16 @@
     topbar.hidden = false;
     if (articleTocEl) articleTocEl.hidden = true;
     window.scrollTo(0, 0);
+  }
+
+  /** 自测答题过程：隐藏顶栏（登录/搜索/目录/反馈），专心答题 */
+  function renderQuizFlow(html) {
+    renderStandalone(html);
+    topbar.hidden = true;
+    const pet = $('#pet');
+    if (pet) pet.hidden = true;
+    const fab = $('#fab');
+    if (fab) fab.hidden = true;
   }
 
   /* ---------- 阅读进度 ---------- */
