@@ -41,3 +41,7 @@ worker/keys-*.txt
 worker/_*
 .resend-token
 _shots/
+
+# KV 备份（含付费正文与用户数据，绝不进 git）
+worker/backups/
+
