@@ -99,7 +99,7 @@ export const xorpay = {
   },
 
   async verifyNotify(env, { rawBody }) {
-    // ⚠️ 必须验签，否则任何人都能伪造"已支付"回调
+    // ⛔ fail-closed：未完成官方验签前，一律拒绝放款（防伪造支付回调）
     const secret = env.XORPAY_APP_SECRET;
     if (!secret) return null;
 
@@ -109,10 +109,11 @@ export const xorpay = {
     } catch {
       return null;
     }
+    if (!body || body.status !== 'payed') return null;
 
-    // 真实实现要用官方签名算法比对。这里留出校验位。
-    if (!body || body.aoid === undefined && body.order_id === undefined) return null;
-    if (body.status !== 'payed') return null;
+    // TODO: 按 XorPay 官方文档完成签名校验后再放行
+    const signatureVerified = false;
+    if (!signatureVerified) return null;
 
     return {
       ok: true,

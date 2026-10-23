@@ -120,6 +120,29 @@ async function kvDel(env, k) {
   await env.KEYS.delete(k);
 }
 
+/** 按 key 简单限流：windowMs 内最多 max 次 */
+async function rateLimit(env, key, max, windowMs) {
+  const now = Date.now();
+  let hits = [];
+  try {
+    hits = JSON.parse((await env.KEYS.get(key)) || '[]');
+    if (!Array.isArray(hits)) hits = [];
+  } catch {
+    hits = [];
+  }
+  hits = hits.filter((t) => now - t < windowMs);
+  if (hits.length >= max) return false;
+  hits.push(now);
+  await env.KEYS.put(key, JSON.stringify(hits), {
+    expirationTtl: Math.ceil(windowMs / 1000) + 60,
+  });
+  return true;
+}
+
+function ipOf(req) {
+  return (req && req.headers && req.headers.get('cf-connecting-ip')) || 'anon';
+}
+
 /* ==========================================================================
    邮件发送
    ========================================================================== */
@@ -192,6 +215,9 @@ export { readSession };
 export async function signup(env, { email, password }) {
   const e = normEmail(email);
   if (!validEmail(e)) return { ok: false, reason: '邮箱格式不正确' };
+  if (!(await rateLimit(env, 'rl:signup:' + e, 5, 15 * 60_000))) {
+    return { ok: false, reason: '尝试太频繁，请稍后再试' };
+  }
   if (typeof password !== 'string' || password.length < 8) {
     return { ok: false, reason: '密码至少 8 位' };
   }
@@ -222,10 +248,15 @@ export async function signup(env, { email, password }) {
 /** 生成并发送验证码 */
 export async function issueCode(env, email) {
   const e = normEmail(email);
+  if (!(await rateLimit(env, 'rl:code:' + e, 5, 10 * 60_000))) {
+    return { ok: false, reason: '验证码发送太频繁，请稍后再试' };
+  }
   const user = await kvGet(env, 'user:' + e);
   if (!user) return { ok: false, reason: '没有这个账号，请先注册' };
 
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const codeBuf = new Uint8Array(1);
+    crypto.getRandomValues(codeBuf);
+    const code = String(100000 + (codeBuf[0] % 900000));
   await kvPut(env, 'vc:' + e, {
     code, exp: Date.now() + CODE_TTL_MIN * 60_000, tries: 0,
   }, CODE_TTL_MIN * 60);
@@ -279,6 +310,9 @@ export async function verifyCode(env, { email, code }) {
 export async function login(env, { email, password }) {
   const e = normEmail(email);
   if (!validEmail(e)) return { ok: false, reason: '邮箱格式不正确' };
+  if (!(await rateLimit(env, 'rl:login:' + e, 10, 15 * 60_000))) {
+    return { ok: false, reason: '尝试太频繁，请稍后再试' };
+  }
 
   const user = await kvGet(env, 'user:' + e);
   if (!user) return { ok: false, reason: '邮箱或密码不对' };
@@ -317,6 +351,27 @@ export async function me(env, token) {
 export async function logout(env, token) {
   if (token) await kvDel(env, 'sess:' + token);
   return { ok: true };
+}
+
+/** 该账号在所有设备上下线（吊销全部 session） */
+export async function logoutAll(env, token) {
+  const s = await readSession(env, token);
+  if (!s) return { ok: false, reason: 'not-logged-in' };
+  const email = normEmail(s.email);
+  let cursor = undefined;
+  let n = 0;
+  do {
+    const page = await env.KEYS.list({ prefix: 'sess:', cursor });
+    for (const k of page.list_complete ? page.keys : page.keys) {
+      const rec = await kvGet(env, k.name);
+      if (rec && normEmail(rec.email) === email) {
+        await kvDel(env, k.name);
+        n++;
+      }
+    }
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+  return { ok: true, revoked: n };
 }
 
 /** 某邮箱买过哪些等级 */

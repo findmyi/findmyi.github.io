@@ -24,6 +24,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run security & regression tests
+        run: |
+          set -e
+          node build/test-paywall.mjs
+          node build/test-auth-mode.mjs
+          node build/test-alipay-sign.mjs
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
@@ -37,7 +49,7 @@ jobs:
           cp -r index.html assets articles data _site/
           # SEO/AIEO：每篇的独立可索引页面 + sitemap/robots/llms
           [ -d p ] && cp -r p _site/ || true
-          for f in sitemap.xml robots.txt llms.txt; do
+          for f in sitemap.xml robots.txt llms.txt security.txt; do
             [ -f "$f" ] && cp "$f" _site/ || true
           done
           # 法务页面（Google OAuth 发布需要隐私政策与服务条款链接）

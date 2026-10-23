@@ -52,11 +52,50 @@
    ⑤ 把 Worker 地址填进站点 assets/payment.js 的 workerUrl
    ========================================================================== */
 
-const CORS = {
-  'access-control-allow-origin': '*',
+const CORS_DEFAULT = {
   'access-control-allow-methods': 'POST, OPTIONS',
   'access-control-allow-headers': 'content-type',
+  'vary': 'Origin',
 };
+
+/** 只放行站点与本地预览，避免全网任意源读接口 */
+const ALLOWED_ORIGINS = new Set([
+  'https://findmyi.github.io',
+  'http://127.0.0.1:8848',
+  'http://localhost:8848',
+]);
+
+function corsHeaders(request) {
+  const origin = request ? request.headers.get('origin') || '' : '';
+  const allow = ALLOWED_ORIGINS.has(origin) ? origin : '';
+  return allow
+    ? { ...CORS_DEFAULT, 'access-control-allow-origin': allow }
+    : { ...CORS_DEFAULT };
+}
+
+let _req = null;
+
+function json(obj, status = 200, request) {
+  const req = request || _req;
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { ...corsHeaders(req), 'content-type': 'application/json' },
+  });
+}
+
+/** 常量时间比较管理员令牌 */
+function adminOk(env, token) {
+  const t = env.ADMIN_TOKEN;
+  if (!t || typeof token !== 'string') return false;
+  const a = String(t);
+  const b = token;
+  let diff = a.length ^ b.length;
+  const n = Math.max(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
 
 import { getProvider } from './pay.js';
 import * as auth from './auth.js';
@@ -106,13 +145,6 @@ function genKey(tier) {
   // 与 validateKey / license.js 一致：checksum 吃带连字符的 body
   const body = ['ZY', t, r1, r2].join('-');
   return (body + '-' + ALPHABET[fnv1a(body) % ALPHABET.length]).replace(/-/g, '');
-}
-
-function json(obj, status = 200) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { ...CORS, 'content-type': 'application/json' },
-  });
 }
 
 /* ---- 等级覆盖规则：哪个等级能看哪些文章 ---- */
@@ -352,7 +384,7 @@ async function handleNotify(request, env, url) {
   try {
     rawBody = await request.text();
   } catch {
-    return new Response('bad body', { status: 400, headers: CORS });
+    return new Response('bad body', { status: 400, headers: corsHeaders(request) });
   }
 
   const headers = Object.fromEntries(request.headers);
@@ -365,17 +397,17 @@ async function handleNotify(request, env, url) {
   }
 
   if (!v || !v.ok) {
-    return new Response('verify failed', { status: 400, headers: CORS });
+    return new Response('verify failed', { status: 400, headers: corsHeaders(request) });
   }
 
   const rec = await markPaidAndIssue(env, v.outTradeNo, v.providerTradeNo);
 
   // 不同支付商要求的应答格式不同，这里给一个通用的成功应答
   if (provider.name === 'xorpay') {
-    return new Response('success', { headers: CORS });
+    return new Response('success', { headers: corsHeaders(request) });
   }
   return new Response(JSON.stringify({ ec: 200, em: 'ok' }), {
-    headers: { ...CORS, 'content-type': 'application/json' },
+    headers: { ...corsHeaders(request), 'content-type': 'application/json' },
   });
 }
 
@@ -440,7 +472,7 @@ document.getElementById('pay').onclick = async function(){
 </script></body></html>`;
 
   return new Response(html, {
-    headers: { ...CORS, 'content-type': 'text/html; charset=utf-8' },
+    headers: { ...corsHeaders(request), 'content-type': 'text/html; charset=utf-8' },
   });
 }
 
@@ -574,19 +606,15 @@ $('refresh').onclick = load;
 
 export default {
   async fetch(request, env) {
+    _req = request;
     const url = new URL(request.url);
 
-    if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
+    if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders(request) });
     if (url.pathname === '/health') return json({ ok: true, ts: Date.now() });
 
     /* ================= 支付回调（独立路径，不走 action） ================= */
     if (url.pathname === '/notify') {
       return handleNotify(request, env, url);
-    }
-
-    /* ================= mock 收银台页面（仅开发用） ================= */
-    if (url.pathname === '/mock-pay' && request.method === 'GET') {
-      return mockPayPage(url, env);
     }
 
     /* ================= 管理后台（人工确认订单） ================= */
@@ -597,7 +625,7 @@ export default {
     /* ================= Google 登录 ================= */
     if (url.pathname === '/auth/google' && request.method === 'GET') {
       const u = auth.googleAuthUrl(env, url.searchParams.get('state') || '', url.origin);
-      if (!u) return new Response('Google 登录未配置（缺 GOOGLE_CLIENT_ID）', { status: 503, headers: CORS });
+      if (!u) return new Response('Google 登录未配置（缺 GOOGLE_CLIENT_ID）', { status: 503, headers: corsHeaders(request) });
       return Response.redirect(u, 302);
     }
 
@@ -647,6 +675,7 @@ export default {
     if (action === 'verify') return json(await auth.verifyCode(env, body));
     if (action === 'login') return json(await auth.login(env, body));
     if (action === 'logout') return json(await auth.logout(env, session));
+    if (action === 'logout-all') return json(await auth.logoutAll(env, session));
     if (action === 'me') return json(await auth.me(env, session));
     if (action === 'resend') return json(await auth.issueCode(env, body.email));
 
@@ -709,29 +738,26 @@ export default {
     /* ================= 在线购买：查订单（前端轮询） ================= */
     if (action === 'order') {
       const no = String(body.outTradeNo || '').trim();
-      if (!/^[A-Za-z0-9_-]{6,40}$/.test(no)) return json({ ok: false, reason: 'badno' });
+      if (!/^[A-Za-z0-9_-]{6,40}$/.test(no)) return json({ ok: false, reason: 'badno' }, 400);
+      // 必须登录，且只能看自己的订单 —— 否则订单号泄露即可换走授权码
+      const sess = await auth.readSession(env, session);
+      if (!sess) return json({ ok: false, reason: 'need-login' }, 401);
       const rec = await getOrder(env, no);
-      if (!rec) return json({ ok: false, reason: 'notfound' });
+      if (!rec) return json({ ok: false, reason: 'notfound' }, 404);
+      const owner = normEmailLite(rec.email || '');
+      const me = normEmailLite(sess.email || '');
+      if (!owner || !me || owner !== me) {
+        return json({ ok: false, reason: 'forbidden' }, 403);
+      }
       return json({
         ok: true,
         status: rec.status,                  // pending | paid | failed
         tier: rec.tier,
-        key: rec.status === 'paid' ? rec.key : null,   // 只有已付款才给码
+        key: rec.status === 'paid' ? rec.key : null,
       });
     }
 
-    /* ================= mock：模拟支付成功（仅开发） ================= */
-    if (action === 'mock-pay') {
-      if (String(env.PAY_PROVIDER || 'mock') !== 'mock') {
-        return json({ ok: false, reason: 'not-mock-mode' }, 403);
-      }
-      const no = String(body.outTradeNo || '').trim();
-      const rec = await getOrder(env, no);
-      if (!rec) return json({ ok: false, reason: 'notfound' });
-      if (rec.status === 'paid') return json({ ok: true, status: 'paid', already: true });
-      const filled = await markPaidAndIssue(env, no, 'MOCK');
-      return json({ ok: true, status: 'paid', key: filled.key });
-    }
+    /* mock-pay 已移除：生产禁止“点一下就付款”。真实收款走收款码 + 管理员 confirm。 */
 
     /* ================= 用户点了「我已完成付款」 ================= */
     if (action === 'claim-paid') {
@@ -750,7 +776,7 @@ export default {
 
     /* ================= 管理员：看待确认订单 ================= */
     if (action === 'pending') {
-      if (!env.ADMIN_TOKEN || body.token !== env.ADMIN_TOKEN) {
+      if (!adminOk(env, body.token)) {
         return json({ ok: false, reason: 'forbidden' }, 403);
       }
       const list = await env.KEYS.list({ prefix: 'order:', limit: 200 });
@@ -779,7 +805,7 @@ export default {
 
     /* ================= 管理员：确认收款并放权 ================= */
     if (action === 'confirm') {
-      if (!env.ADMIN_TOKEN || body.token !== env.ADMIN_TOKEN) {
+      if (!adminOk(env, body.token)) {
         return json({ ok: false, reason: 'forbidden' }, 403);
       }
       const no = String(body.outTradeNo || '').trim();
@@ -791,7 +817,7 @@ export default {
 
     /* ================= 管理员接口 ================= */
     if (action === 'issue' || action === 'revoke' || action === 'stats') {
-      if (!env.ADMIN_TOKEN || body.token !== env.ADMIN_TOKEN) {
+      if (!adminOk(env, body.token)) {
         return json({ ok: false, reason: 'forbidden' }, 403);
       }
 
@@ -1071,7 +1097,7 @@ export default {
 
     /* 管理员：改状态 + 官方回复 */
     if (action === 'feedback.moderate') {
-      if (!env.ADMIN_TOKEN || body.token !== env.ADMIN_TOKEN) {
+      if (!adminOk(env, body.token)) {
         return json({ ok: false, reason: 'unauthorized' }, 401);
       }
       const id = Number(body.id);
