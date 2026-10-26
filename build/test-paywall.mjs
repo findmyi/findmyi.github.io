@@ -13,7 +13,13 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const ROOT = 'D:/zhouyi-site/';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+/* 用相对路径推算项目根 —— CI（ubuntu）里没有 D:/zhouyi-site，
+   写死绝对路径会让 Actions 的测试步骤失败，进而整次部署失败。 */
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..') + '/';
 
 /* ---------- 迷你断言 ---------- */
 let pass = 0, fail = 0;
@@ -88,7 +94,7 @@ const manifest = JSON.parse(readFileSync(ROOT + 'data/manifest.json', 'utf8'));
   ok('付费文章共 62 篇（乾坤整篇免费）', premCount === 62, String(premCount));
   const freeHex = manifest.articles.filter((a) => a.tier === 'free').map((a) => a.id);
 ok('乾坤是 free 卦', freeHex.length === 2 && freeHex.includes('qian') && freeHex.includes('kun'), JSON.stringify(freeHex));
-ok('乾坤 depth 已写进静态产物', readFileSync('D:/zhouyi-site/articles/qian.html', 'utf8').includes('逐爻详解'));
+ok('乾坤 depth 已写进静态产物', readFileSync(join(ROOT, 'articles/qian.html'), 'utf8').includes('逐爻详解'));
   ok('每篇都有 tier 字段', manifest.articles.every((a) => a.tier));
   ok('meta.premium.enabled = true', manifest.meta.premium.enabled === true);
   ok('meta.premium.ids 覆盖 62 卦', manifest.meta.premium.ids.length === 62);
@@ -153,8 +159,8 @@ console.log('\n【5】安全保证：付费正文不在静态产物中（核心�
   // 另一个例外：爻辞与象传【本来就】在免费部分（每卦的「爻辞 · 六爻」一节），
   // 所以 depth 里引用的这些原文出现在静态页是正常的 —— 必须排除，
   // 否则会把「免费区已有的经文」误判成泄漏。
-  const premium = await import('file:///D:/zhouyi-site/content/premium-content.mjs');
-  const hexData = await import('file:///D:/zhouyi-site/build/hexdata.mjs');
+  const premium = await import(pathToFileURL(join(ROOT, 'content/premium-content.mjs')).href);
+  const hexData = await import(pathToFileURL(join(ROOT, 'build/hexdata.mjs')).href);
   let worstLeak = null;
   let scanned = 0;
   const FREE_PUBLIC = new Set(['qian', 'kun']);   // 乾坤整篇免费，不参与泄漏扫描
