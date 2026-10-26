@@ -167,6 +167,18 @@ function page(a) {
 <meta name="twitter:description" content="${esc(desc)}">
 <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
 <style>${CSS}</style>
+
+<!-- 访问统计（79 个 SEO 落地页共用同一份） -->
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<script>
+var _hmt = _hmt || [];
+(function () {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?cf8505284bfd93be787dac15c172d8ab';
+  var s = document.getElementsByTagName('script')[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
 </head>
 <body>
 <div class="wrap">
