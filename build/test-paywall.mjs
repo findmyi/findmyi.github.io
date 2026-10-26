@@ -54,17 +54,27 @@ console.log('\n【1】授权码格式与校验');
 console.log('\n【2】生成器与校验算法一致（用 keys.csv 实测）');
 let sampleKey = null;
 {
-  const csv = readFileSync(ROOT + 'build/keys.csv', 'utf8').replace(/^\uFEFF/, '');
-  const lines = csv.trim().split(/\r?\n/).slice(1);
-  sampleKey = lines[0].split(',')[0];
+  /* build/keys.csv 是真实签发的授权码，.gitignore 排除，不进仓库。
+     CI 的干净 checkout 没有这个文件 —— 少了它不该阻断部署，
+     所以这里容错成空串，后面按「有就验、没有就跳过」处理。 */
+  const csv = (() => {
+    try { return readFileSync(ROOT + 'build/keys.csv', 'utf8').replace(/^\uFEFF/, ''); }
+    catch { return ''; }
+  })();
+  const lines = csv.trim() ? csv.trim().split(/\r?\n/).slice(1) : [];
+  if (lines.length) sampleKey = lines[0].split(',')[0];
   let allOk = true;
   for (const line of lines) {
     const k = line.split(',')[0];
     if (!License.validate(k).ok) { allOk = false; break; }
   }
-  ok(`CSV 中全部 ${lines.length} 个码通过校验`, allOk);
-  ok('CSV 首行等级为 PREM', lines[0].split(',')[1] === 'PREM');
-  ok('CSV 首行有签发时间', /^\d{4}-\d{2}-\d{2}T/.test(lines[0].split(',')[2]));
+  if (lines.length) {
+      ok(`CSV 中全部 ${lines.length} 个码通过校验`, allOk);
+      ok('CSV 首行等级为 PREM', lines[0].split(',')[1] === 'PREM');
+      ok('CSV 首行有签发时间', /^\d{4}-\d{2}-\d{2}T/.test(lines[0].split(',')[2]));
+    } else {
+      console.log('  ⊘ 跳过：build/keys.csv 不存在（密钥文件不进仓库，CI 里没有）');
+    }
 }
 
 console.log('\n【3】等级作用域');
