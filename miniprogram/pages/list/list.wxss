@@ -1,0 +1,102 @@
+.page {
+  min-height: 100vh;
+  padding: 0 40rpx 60rpx;
+  background: #fbf8f1;
+}
+
+.head {
+  padding: 56rpx 8rpx 44rpx;
+}
+
+.h1 {
+  font-size: 48rpx;
+  letter-spacing: 4rpx;
+  color: #1c1a17;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.sub {
+  margin-top: 18rpx;
+  font-size: 23rpx;
+  line-height: 1.9;
+  color: #8d8579;
+}
+
+/* 四列网格：边框自身成格，读起来像一片卦盘 */
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  border-top: 1rpx solid #ece6da;
+  border-left: 1rpx solid #ece6da;
+}
+
+.cell {
+  width: 25%;
+  padding: 30rpx 0 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-right: 1rpx solid #ece6da;
+  border-bottom: 1rpx solid #ece6da;
+  background: #fbf8f1;
+}
+
+.cell-hover {
+  background: #f6f1e6;
+}
+
+/* 六爻：阳一画，阴两画，全用 CSS 画 */
+.hex {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ln {
+  position: relative;
+  width: 56rpx;
+  height: 4rpx;
+  margin-bottom: 7rpx;
+}
+
+.ln:last-child {
+  margin-bottom: 0;
+}
+
+.ln.yang {
+  background: #a89e8d;
+}
+
+.ln.yin::before,
+.ln.yin::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 24rpx;
+  height: 4rpx;
+  background: #a89e8d;
+}
+
+.ln.yin::before {
+  left: 0;
+}
+
+.ln.yin::after {
+  right: 0;
+}
+
+.gname {
+  margin-top: 20rpx;
+  font-size: 26rpx;
+  letter-spacing: 1rpx;
+  color: #1c1a17;
+}
+
+.tail {
+  padding: 48rpx 0 20rpx;
+  text-align: center;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: #b8b0a2;
+}

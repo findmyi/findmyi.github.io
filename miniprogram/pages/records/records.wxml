@@ -1,0 +1,74 @@
+<view class="page">
+
+  <view class="head">
+    <view class="h1 serif">我的记录</view>
+    <view class="sub">只存在这台手机上。不上传，也没有别人能看到。</view>
+  </view>
+
+  <view class="stats">
+    <view class="stat">
+      <view class="stat-n serif">{{todayCount}}</view>
+      <view class="stat-l">今天完成</view>
+    </view>
+    <view class="stat">
+      <view class="stat-n serif">{{totalCount}}</view>
+      <view class="stat-l">一共完成</view>
+    </view>
+    <view class="stat">
+      <view class="stat-n serif">{{outputCount}}</view>
+      <view class="stat-l">攒下的东西</view>
+    </view>
+  </view>
+
+  <!-- 攒下来的东西 -->
+  <block wx:if="{{outputs.length > 0}}">
+    <view class="label">你攒下来的东西</view>
+    <view
+      class="out"
+      wx:for="{{outputs}}"
+      wx:key="id"
+      data-mod="B"
+      data-idx="{{item.idx}}"
+      bindtap="goCard"
+      hover-class="row-hover"
+    >
+      <view class="out-q">{{item.q}}</view>
+      <view class="out-t">{{item.text}}</view>
+      <view class="out-a">{{item.at}} · 点开可以改</view>
+    </view>
+  </block>
+
+  <!-- 做完的事 -->
+  <block wx:if="{{groups.length > 0}}">
+    <view class="label">做完的事</view>
+    <view class="group" wx:for="{{groups}}" wx:for-item="g" wx:key="mod">
+      <view class="g-head">
+        <view class="g-k">{{g.key}}</view>
+        <view class="g-n">{{g.items.length}} 件</view>
+      </view>
+      <view
+        class="row"
+        wx:for="{{g.items}}"
+        wx:key="id"
+        data-mod="{{g.mod}}"
+        data-idx="{{item.idx}}"
+        bindtap="goCard"
+        hover-class="row-hover"
+      >
+        <view class="row-l">
+          <view class="row-q">{{item.q}}</view>
+          <view class="row-a">{{item.at}}</view>
+        </view>
+        <view class="row-x" catchtap="undo" data-id="{{item.id}}">去掉</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 空 -->
+  <view class="empty" wx:if="{{groups.length === 0 && outputs.length === 0}}">
+    <view class="empty-t serif">还没有记录</view>
+    <view class="empty-d">回去挑一句像你的话，照着做完，这里就会多一行。</view>
+    <view class="empty-b" hover-class="ghost-hover" bindtap="goHome">去挑一个</view>
+  </view>
+
+</view>

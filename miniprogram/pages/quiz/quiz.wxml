@@ -1,0 +1,57 @@
+<view class="page">
+
+  <view class="bar">
+    <view class="back" hover-class="back-hover" bindtap="goBack">
+      <view class="chev"></view>
+    </view>
+    <block wx:if="{{phase === 'quiz'}}">
+      <view class="track">
+        <view class="fill" style="width:{{pct}}%"></view>
+      </view>
+      <view class="count">{{idx + 1}} / {{total}}</view>
+    </block>
+    <block wx:else>
+      <view class="track">
+        <view class="fill" style="width:0%"></view>
+      </view>
+      <view class="count dim">12 题</view>
+    </block>
+  </view>
+
+  <view class="body">
+    <view class="q {{hide ? 'hide' : ''}}">
+
+      <block wx:if="{{phase === 'screen'}}">
+        <view class="qtitle serif">{{screen.q}}</view>
+        <view class="opts">
+          <view
+            wx:for="{{screen.opts}}"
+            wx:key="t"
+            class="opt"
+            hover-class="opt-hover"
+            data-i="{{index}}"
+            bindtap="pickScreen"
+          >{{item.t}}</view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <view class="qtag">{{trackName}}</view>
+        <view class="qtitle serif">{{q.q}}</view>
+        <view class="qhint" wx:if="{{q.hint}}">{{q.hint}}</view>
+        <view class="opts">
+          <view
+            wx:for="{{q.opts}}"
+            wx:key="t"
+            class="opt {{picked === index ? 'on' : ''}}"
+            hover-class="opt-hover"
+            data-i="{{index}}"
+            bindtap="pick"
+          >{{item.t}}</view>
+        </view>
+      </block>
+
+    </view>
+  </view>
+
+</view>

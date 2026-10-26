@@ -9,6 +9,29 @@
 <link rel="stylesheet" href="assets/app.css">
 <link rel="stylesheet" href="assets/toc-variants.css">
 <link rel="stylesheet" href="assets/paywall.css">
+
+<!-- ============================================================
+     访问统计
+     ------------------------------------------------------------
+     A. 不蒜子：极简 PV/UV 计数，免费、无需注册、不写 cookie。
+        加载后自动上报，页脚的「访客 N 人」就是它显示的。
+     B. 百度统计：看每个页面、来源渠道、停留时长、点击行为。
+        需要先去 tongji.baidu.com 注册站点，拿到 32 位 ID，
+        把下面 BAIDU_ID 替换掉，再把整段注释去掉。
+     ============================================================ -->
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<script>
+/* ---------- 百度统计（拿到 ID 后取消下面整段注释） ----------
+(function () {
+  var BAIDU_ID = '在这里填你的32位ID';
+  if (BAIDU_ID.indexOf('在这里') === 0) return;   // 没填就不加载
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?' + BAIDU_ID;
+  var s = document.getElementsByTagName('script')[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+------------------------------------------------------------- */
+</script>
 </head>
 <body>
 <a class="skip-link" href="#main">跳到正文</a>
@@ -144,6 +167,10 @@
         <a href="#/feedback">反馈</a>
         <span class="footer-sep">·</span>
         64 卦 · 384 爻 · 持续校订
+        <span class="footer-sep">·</span>
+        <span id="busuanzi_container_site_uv" style="display:none">
+          访客 <span id="busuanzi_value_site_uv"></span> 人
+        </span>
       </span>
     </div>
   </footer>

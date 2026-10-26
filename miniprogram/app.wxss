@@ -1,0 +1,96 @@
+/* 基调：宣纸白底 + 墨黑字 + 朱砂红。不加渐变，不堆阴影。 */
+
+page {
+  background: #fbf8f1;
+  color: #1c1a17;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+view,
+text {
+  box-sizing: border-box;
+}
+
+/* 宋体：标题专用 */
+.serif {
+  font-family: "Songti SC", "Source Han Serif SC", "Noto Serif SC", STSong, SimSun, serif;
+}
+
+/* ── 三段块：你在哪 / 该做什么 / 什么情况下不适用 ── */
+.blk {
+  margin-top: 26rpx;
+}
+
+.blk-label {
+  font-size: 22rpx;
+  letter-spacing: 4rpx;
+  color: #8d8579;
+  margin-bottom: 10rpx;
+}
+
+.blk-text {
+  font-size: 27rpx;
+  line-height: 1.95;
+  color: #3d382f;
+}
+
+/* 最值钱的一段：朱砂左框 + 淡红底 */
+.blk.duty {
+  border-left: 4rpx solid #a8322a;
+  background: #faf1ee;
+  padding: 18rpx 22rpx 20rpx 24rpx;
+}
+
+.blk.duty .blk-label {
+  color: #a8322a;
+}
+
+/* 限定条件：黄左框 + 灰字 */
+.blk.when {
+  border-left: 4rpx solid #d9b15f;
+  padding: 2rpx 0 2rpx 22rpx;
+}
+
+.blk.when .blk-label {
+  color: #9a8a63;
+}
+
+.blk.when .blk-text {
+  font-size: 26rpx;
+  color: #6b645a;
+}
+
+/* ── 通用按钮 ── */
+.btn {
+  height: 96rpx;
+  line-height: 96rpx;
+  text-align: center;
+  font-size: 30rpx;
+  letter-spacing: 4rpx;
+  border-radius: 8rpx;
+  border: 1rpx solid #a8322a;
+  color: #fbf8f1;
+  background: #a8322a;
+}
+
+.btn.ghost {
+  background: transparent;
+  border: 1rpx solid #cfc7b8;
+  color: #1c1a17;
+}
+
+.btn-hover {
+  opacity: 0.82;
+}
+
+.ghost-hover {
+  background: #f4efe5;
+}
+
+/* ── 分隔线 ── */
+.hr {
+  height: 1rpx;
+  background: #e8e2d8;
+  transform: scaleY(0.6);
+}

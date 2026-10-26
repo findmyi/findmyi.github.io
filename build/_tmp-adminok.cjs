@@ -1,0 +1,10 @@
+const fs = require('fs');
+const p = 'D:/zhouyi-site/worker/index.js';
+let s = fs.readFileSync(p, 'utf8');
+s = s.split('!env.ADMIN_TOKEN || body.token !== env.ADMIN_TOKEN').join('!adminOk(env, body.token)');
+s = s.split('body.token !== env.ADMIN_TOKEN').join('!adminOk(env, body.token)');
+s = s.split('!!adminOk').join('!adminOk');
+fs.writeFileSync(p, s);
+const left = (s.match(/body\.token !== env\.ADMIN_TOKEN/g) || []).length;
+const used = (s.match(/adminOk\(env, body\.token\)/g) || []).length;
+console.log('old left', left, 'adminOk calls', used);

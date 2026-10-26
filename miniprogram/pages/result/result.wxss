@@ -1,0 +1,178 @@
+.page {
+  min-height: 100vh;
+  padding: 0 48rpx 40rpx;
+  background: #fbf8f1;
+}
+
+/* ── 阶段 ── */
+.head {
+  padding: 64rpx 8rpx 0;
+}
+
+.kicker {
+  font-size: 20rpx;
+  letter-spacing: 5rpx;
+  color: #a8a093;
+}
+
+.kicker.center {
+  text-align: center;
+}
+
+.stagename {
+  margin-top: 24rpx;
+  font-size: 62rpx;
+  line-height: 1.4;
+  letter-spacing: 3rpx;
+  color: #1c1a17;
+  font-weight: 500;
+}
+
+.ask {
+  margin-top: 22rpx;
+  font-size: 28rpx;
+  line-height: 1.85;
+  color: #a8322a;
+}
+
+.hr.thin {
+  margin: 44rpx 0 34rpx;
+}
+
+.summary {
+  font-size: 28rpx;
+  line-height: 2.05;
+  color: #3d382f;
+}
+
+/* ── 阶段建议 ── */
+.sec {
+  margin-top: 54rpx;
+  padding: 0 8rpx;
+}
+
+.seclabel {
+  font-size: 22rpx;
+  letter-spacing: 4rpx;
+  color: #8d8579;
+  margin-bottom: 16rpx;
+}
+
+.seclabel.red {
+  color: #a8322a;
+}
+
+.sectext {
+  font-size: 29rpx;
+  line-height: 2.05;
+  color: #1c1a17;
+}
+
+.sectext.dim {
+  font-size: 26rpx;
+  color: #6b645a;
+}
+
+.sep {
+  height: 1rpx;
+  background: #e8e2d8;
+  margin: 64rpx 8rpx 56rpx;
+  transform: scaleY(0.6);
+}
+
+/* ── 三条处境 ── */
+.cards {
+  margin-top: 40rpx;
+}
+
+.card {
+  padding: 40rpx 34rpx 36rpx;
+  margin-bottom: 28rpx;
+  background: #fffdf8;
+  border: 1rpx solid #e8e2d8;
+  border-radius: 8rpx;
+}
+
+.v {
+  font-size: 34rpx;
+  line-height: 1.72;
+  letter-spacing: 1rpx;
+  color: #1c1a17;
+}
+
+.gp {
+  margin-top: 18rpx;
+  font-size: 21rpx;
+  letter-spacing: 3rpx;
+  color: #8d8579;
+}
+
+.hr.inner {
+  margin: 32rpx 0 4rpx;
+}
+
+/* ── 接下一步 ── */
+.bridge {
+  margin: 20rpx 12rpx 0;
+  text-align: center;
+  font-size: 24rpx;
+  line-height: 1.95;
+  color: #6b645a;
+}
+
+.acts {
+  display: flex;
+  margin-top: 32rpx;
+}
+
+.act-entry {
+  flex: 1;
+  padding: 28rpx 24rpx;
+  background: #fffdf8;
+  border: 1rpx solid #e8e2d8;
+  border-radius: 8rpx;
+}
+
+.act-entry + .act-entry {
+  margin-left: 18rpx;
+}
+
+.row-hover {
+  background: #f7f2e8;
+}
+
+.act-k {
+  font-size: 19rpx;
+  letter-spacing: 2rpx;
+  color: #a8322a;
+}
+
+.act-t {
+  margin-top: 10rpx;
+  font-size: 26rpx;
+  line-height: 1.62;
+  letter-spacing: 1rpx;
+  color: #1c1a17;
+}
+
+/* ── 底部操作 ── */
+.actions {
+  display: flex;
+  margin-top: 40rpx;
+}
+
+.actions .btn {
+  flex: 1;
+}
+
+.actions .btn.ghost + .btn.ghost {
+  margin-left: 20rpx;
+}
+
+.tail {
+  padding: 56rpx 0 60rpx;
+  text-align: center;
+  font-size: 20rpx;
+  letter-spacing: 3rpx;
+  color: #b8b0a2;
+}

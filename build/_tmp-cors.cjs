@@ -1,0 +1,10 @@
+const fs = require('fs');
+const p = 'D:/zhouyi-site/worker/index.js';
+let s = fs.readFileSync(p, 'utf8');
+s = s.split("headers: CORS").join("headers: corsHeaders(request)");
+s = s.split("headers: { ...CORS, 'content-type': 'application/json' }").join("headers: { ...corsHeaders(request), 'content-type': 'application/json' }");
+s = s.split("headers: { ...CORS, 'content-type': 'text/html; charset=utf-8' }").join("headers: { ...corsHeaders(request), 'content-type': 'text/html; charset=utf-8' }");
+fs.writeFileSync(p, s);
+const left = (s.match(/[^_]CORS[^_]/g) || []).filter((x) => !x.includes('CORS_DEFAULT')).length;
+console.log('remaining bare CORS-like', left);
+console.log((s.match(/headers: CORS/g) || []).length, 'headers: CORS left');

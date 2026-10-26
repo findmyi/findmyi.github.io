@@ -1,0 +1,75 @@
+<view class="page">
+
+  <!-- 阶段 -->
+  <view class="head">
+    <view class="kicker">阶段 {{stageNo}} / 6</view>
+    <view class="stagename serif">{{stage.name}}</view>
+    <view class="ask serif">「{{stage.ask}}」</view>
+    <view class="hr thin"></view>
+    <view class="summary">{{stage.summary}}</view>
+  </view>
+
+  <!-- 阶段建议 -->
+  <view class="sec">
+    <view class="seclabel red">这一阶段该做什么</view>
+    <view class="sectext">{{stage.advice}}</view>
+  </view>
+
+  <view class="sec">
+    <view class="seclabel">但什么情况下这套不适用</view>
+    <view class="sectext dim">{{stage.caution}}</view>
+  </view>
+
+  <view class="sep"></view>
+
+  <!-- 三条处境 -->
+  <view class="kicker center">最像你的三条处境</view>
+
+  <view class="cards">
+    <view class="card" wx:for="{{picks}}" wx:key="key">
+      <view class="v serif">{{item.v}}</view>
+      <view class="gp">{{item.g}}卦 · {{item.p}}</view>
+      <view class="hr inner"></view>
+
+      <view class="blk">
+        <view class="blk-label">你在哪</view>
+        <view class="blk-text">{{item.w}}</view>
+      </view>
+
+      <view class="blk duty">
+        <view class="blk-label">该做什么</view>
+        <view class="blk-text">{{item.r}}</view>
+      </view>
+
+      <view class="blk when">
+        <view class="blk-label">什么情况下不适用</view>
+        <view class="blk-text">{{item.e}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="sep"></view>
+
+  <!-- 接下一步：从「看清」到「动一下」 -->
+  <view class="kicker center">照完了，接下来</view>
+  <view class="bridge">看清位置只是第一步。挑一件现在就能做完的事，三分钟也算数。</view>
+
+  <view class="acts">
+    <view class="act-entry" hover-class="row-hover" bindtap="goActs" data-mod="A">
+      <view class="act-k">状态低</view>
+      <view class="act-t serif">先做一件小事</view>
+    </view>
+    <view class="act-entry" hover-class="row-hover" bindtap="goActs" data-mod="B">
+      <view class="act-k">状态好</view>
+      <view class="act-t serif">趁有劲把事推起来</view>
+    </view>
+  </view>
+
+  <view class="actions">
+    <view class="btn ghost" hover-class="ghost-hover" bindtap="again">再测一次</view>
+    <view class="btn ghost" hover-class="ghost-hover" bindtap="toList">看六十四卦</view>
+  </view>
+
+  <view class="tail">处境自测 · 六十四卦</view>
+
+</view>

@@ -1,0 +1,62 @@
+<view class="wrap">
+
+  <view class="hero">
+    <view class="seal serif">处</view>
+    <view class="eyebrow">状态工具箱</view>
+    <view class="title serif">
+      <view>你现在，</view>
+      <view>在哪一步？</view>
+    </view>
+    <view class="redrule"></view>
+    <view class="lede">
+      <view>先看清位置，再决定做什么。</view>
+      <view>两件事可以分开做，也可以接着做。</view>
+    </view>
+  </view>
+
+  <!-- 一、看清位置 -->
+  <view class="sec">
+    <view class="seclabel"><text class="num serif">一</text>看清位置</view>
+
+    <view class="main">
+      <view class="main-t serif">我在哪个阶段</view>
+      <view class="main-d">12 道题，三分钟。答完给你三条最像你的处境，每条说清：你在哪、该做什么、什么情况下不适用。</view>
+      <view class="btn main-btn" hover-class="btn-hover" bindtap="startQuiz">开始测一测</view>
+    </view>
+  </view>
+
+  <!-- 二、先动一下 -->
+  <view class="sec">
+    <view class="seclabel"><text class="num serif">二</text>先动一下</view>
+
+    <view class="row" hover-class="row-hover" bindtap="goActs" data-mod="A">
+      <view class="row-l">
+        <view class="row-k">状态低的时候</view>
+        <view class="row-t serif">先做一件小事</view>
+        <view class="row-m">12 个处境 · 每个 3 分钟内</view>
+      </view>
+      <view class="chev-r"></view>
+    </view>
+
+    <view class="row" hover-class="row-hover" bindtap="goActs" data-mod="B">
+      <view class="row-l">
+        <view class="row-k">状态好的时候</view>
+        <view class="row-t serif">趁有劲把事推起来</view>
+        <view class="row-m">12 个处境 · 每个 20-90 分钟</view>
+      </view>
+      <view class="chev-r"></view>
+    </view>
+  </view>
+
+  <!-- 我的记录 -->
+  <view class="mine" hover-class="mine-hover" bindtap="goRecords">
+    <view class="mine-l">
+      <view class="mine-t">我的记录</view>
+      <view class="mine-d">{{mineDesc}}</view>
+    </view>
+    <view class="chev-r"></view>
+  </view>
+
+  <view class="tail">记录只存在这台手机上，不上传，也没有别人能看到。</view>
+
+</view>

@@ -1,0 +1,22 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/quiz/quiz",
+    "pages/result/result",
+    "pages/acts/acts",
+    "pages/card/card",
+    "pages/records/records",
+    "pages/list/list",
+    "pages/detail/detail"
+  ],
+  "window": {
+    "backgroundColor": "#fbf8f1",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#fbf8f1",
+    "navigationBarTitleText": "我的状态工具箱",
+    "navigationBarTextStyle": "black"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

@@ -1,0 +1,33 @@
+<view class="page">
+
+  <view class="head">
+    <view class="kicker">{{info.key}}</view>
+    <view class="h1 serif">{{info.desc}}</view>
+    <view class="sub">{{info.meta}}</view>
+    <view class="note">{{info.note}}</view>
+  </view>
+
+  <view class="rows">
+    <view
+      class="row {{item.done ? 'done' : ''}}"
+      wx:for="{{items}}"
+      wx:key="id"
+      data-idx="{{index}}"
+      bindtap="goCard"
+      hover-class="row-hover"
+    >
+      <view class="rail"></view>
+      <view class="row-main">
+        <view class="row-t">{{item.q}}</view>
+        <view class="row-f">
+          <text class="tag">{{item.tag}}</text>
+          <text class="dot">·</text>
+          <text class="time">{{item.done ? '已完成' : item.time}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="tail">挑一句像你的，点开照着做。做完就算数。</view>
+
+</view>

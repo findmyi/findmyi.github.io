@@ -1,0 +1,110 @@
+.page {
+  min-height: 100vh;
+  padding: 0 48rpx 60rpx;
+  background: #fbf8f1;
+}
+
+/* ── 头 ── */
+.head {
+  padding: 60rpx 8rpx 40rpx;
+}
+
+.kicker {
+  font-size: 20rpx;
+  letter-spacing: 4rpx;
+  color: #a8322a;
+}
+
+.h1 {
+  margin-top: 20rpx;
+  font-size: 46rpx;
+  line-height: 1.5;
+  letter-spacing: 2rpx;
+  color: #1c1a17;
+  font-weight: 500;
+}
+
+.sub {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  letter-spacing: 1rpx;
+  color: #a8a093;
+}
+
+.note {
+  margin-top: 22rpx;
+  font-size: 24rpx;
+  line-height: 1.9;
+  color: #6b645a;
+}
+
+/* ── 处境行 ── */
+.rows {
+  border-top: 1rpx solid #e8e2d8;
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1rpx solid #e8e2d8;
+}
+
+.row-hover {
+  background: #f7f2e8;
+}
+
+/* 左侧细轨：做完的点亮成朱砂 */
+.rail {
+  width: 3rpx;
+  margin: 22rpx 0;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.row.done .rail {
+  background: #a8322a;
+}
+
+.row-main {
+  flex: 1;
+  padding: 28rpx 0 28rpx 24rpx;
+  margin-left: 12rpx;
+}
+
+.row-t {
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: #1c1a17;
+}
+
+.row.done .row-t {
+  color: #8d8579;
+}
+
+.row-f {
+  margin-top: 12rpx;
+  font-size: 20rpx;
+  letter-spacing: 1rpx;
+  color: #a8a093;
+}
+
+.row.done .row-f .time {
+  color: #a8322a;
+}
+
+.row-f .tag {
+  color: #8d8579;
+}
+
+.dot {
+  margin: 0 10rpx;
+  color: #cfc7b8;
+}
+
+.tail {
+  padding: 48rpx 0 20rpx;
+  text-align: center;
+  font-size: 20rpx;
+  letter-spacing: 1rpx;
+  color: #b8b0a2;
+}

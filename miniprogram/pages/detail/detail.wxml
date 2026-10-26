@@ -1,0 +1,55 @@
+<view class="page">
+
+  <view class="head">
+    <view class="hex">
+      <view
+        wx:for="{{rows}}"
+        wx:for-item="ln"
+        wx:for-index="j"
+        wx:key="p"
+        class="ln {{ln.yang ? 'yang' : 'yin'}}"
+      ></view>
+    </view>
+    <view class="gname serif">{{gua}}</view>
+    <view class="sub">六爻 · 从上往下</view>
+    <view class="hint">点开任意一条，看它在讲什么</view>
+  </view>
+
+  <view class="rows">
+    <view
+      class="row"
+      wx:for="{{rows}}"
+      wx:key="p"
+      data-i="{{index}}"
+      bindtap="toggle"
+      hover-class="row-hover"
+    >
+      <view class="rowhead">
+        <view class="pos serif">{{item.p}}</view>
+        <view class="rv">{{item.v}}</view>
+      </view>
+
+      <view class="detail" wx:if="{{open === index}}">
+        <view class="blk">
+          <view class="blk-label">你在哪</view>
+          <view class="blk-text">{{item.w}}</view>
+        </view>
+
+        <view class="blk duty">
+          <view class="blk-label">该做什么</view>
+          <view class="blk-text">{{item.r}}</view>
+        </view>
+
+        <view class="blk when">
+          <view class="blk-label">什么情况下不适用</view>
+          <view class="blk-text">{{item.e}}</view>
+        </view>
+
+        <view class="orig">原辞 · {{item.y}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="tail">六十四卦 · 处境自测</view>
+
+</view>

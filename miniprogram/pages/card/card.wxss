@@ -1,0 +1,170 @@
+.page {
+  min-height: 100vh;
+  padding: 0 48rpx 70rpx;
+  background: #fbf8f1;
+}
+
+/* ── 头：一句话 → 一个动作 ── */
+.head {
+  padding: 56rpx 8rpx 40rpx;
+}
+
+.quote {
+  font-size: 28rpx;
+  line-height: 1.85;
+  color: #6b645a;
+}
+
+.act {
+  margin-top: 22rpx;
+  font-size: 46rpx;
+  line-height: 1.5;
+  letter-spacing: 2rpx;
+  color: #1c1a17;
+  font-weight: 500;
+}
+
+.meta {
+  margin-top: 22rpx;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: #a8a093;
+}
+
+.hr {
+  height: 1rpx;
+  background: #e8e2d8;
+  transform: scaleY(0.6);
+}
+
+/* ── 步骤 ── */
+.label {
+  margin: 40rpx 0 4rpx;
+  font-size: 21rpx;
+  letter-spacing: 4rpx;
+  color: #8d8579;
+}
+
+.steps {
+  padding-top: 4rpx;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  padding: 22rpx 0;
+}
+
+.num {
+  width: 46rpx;
+  flex-shrink: 0;
+  padding-top: 2rpx;
+  font-size: 24rpx;
+  color: #a8322a;
+  letter-spacing: 0;
+}
+
+.step-t {
+  flex: 1;
+  font-size: 27rpx;
+  line-height: 1.85;
+  color: #2b2721;
+}
+
+/* ── 解释块 ── */
+.plain {
+  margin-top: 44rpx;
+  padding-top: 30rpx;
+  border-top: 1rpx solid #e8e2d8;
+}
+
+.plain-h {
+  font-size: 21rpx;
+  letter-spacing: 4rpx;
+  color: #8d8579;
+  margin-bottom: 14rpx;
+}
+
+.plain-t {
+  font-size: 25rpx;
+  line-height: 1.95;
+  color: #6b645a;
+}
+
+/* ── 写下来（B 模块） ── */
+.write-label {
+  margin-top: 48rpx;
+}
+
+.ta {
+  width: 100%;
+  min-height: 180rpx;
+  margin-top: 12rpx;
+  padding: 26rpx 26rpx;
+  box-sizing: border-box;
+  background: #fffdf8;
+  border: 1rpx solid #e0d9cb;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  line-height: 1.85;
+  color: #1c1a17;
+}
+
+.ta-ph {
+  color: #b8b0a2;
+}
+
+.save {
+  margin-top: 20rpx;
+  height: 84rpx;
+  line-height: 84rpx;
+  text-align: center;
+  font-size: 26rpx;
+  letter-spacing: 2rpx;
+  color: #1c1a17;
+  border: 1rpx solid #cfc7b8;
+  border-radius: 8rpx;
+}
+
+/* ── 完成按钮 ── */
+.done {
+  margin-top: 56rpx;
+  padding: 34rpx 28rpx;
+  text-align: center;
+  border: 1rpx solid #a8322a;
+  border-radius: 8rpx;
+}
+
+.done-k {
+  font-size: 28rpx;
+  letter-spacing: 3rpx;
+  color: #a8322a;
+}
+
+.done-t {
+  margin-top: 14rpx;
+  font-size: 21rpx;
+  line-height: 1.8;
+  color: #8d8579;
+}
+
+.done.on {
+  background: #a8322a;
+}
+
+.done.on .done-k {
+  color: #fbf8f1;
+}
+
+.done.on .done-t {
+  color: rgba(251, 248, 241, 0.72);
+}
+
+/* ── 兜底回首页 ── */
+.home {
+  margin-top: 44rpx;
+  text-align: center;
+  font-size: 22rpx;
+  letter-spacing: 1rpx;
+  color: #8d8579;
+}

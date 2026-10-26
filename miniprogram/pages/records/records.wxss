@@ -1,0 +1,178 @@
+.page {
+  min-height: 100vh;
+  padding: 0 48rpx 70rpx;
+  background: #fbf8f1;
+}
+
+.head {
+  padding: 56rpx 8rpx 40rpx;
+}
+
+.h1 {
+  font-size: 48rpx;
+  letter-spacing: 3rpx;
+  line-height: 1.4;
+  color: #1c1a17;
+  font-weight: 500;
+}
+
+.sub {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  line-height: 1.85;
+  color: #a8a093;
+}
+
+/* ── 三个数 ── */
+.stats {
+  display: flex;
+  border-top: 1rpx solid #e8e2d8;
+  border-bottom: 1rpx solid #e8e2d8;
+}
+
+.stat {
+  flex: 1;
+  padding: 32rpx 0;
+  text-align: center;
+}
+
+.stat + .stat {
+  border-left: 1rpx solid #e8e2d8;
+}
+
+.stat-n {
+  font-size: 44rpx;
+  line-height: 1.2;
+  color: #1c1a17;
+}
+
+.stat-l {
+  margin-top: 12rpx;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: #a8a093;
+}
+
+/* ── 区块标题 ── */
+.label {
+  margin: 52rpx 0 20rpx;
+  font-size: 21rpx;
+  letter-spacing: 4rpx;
+  color: #8d8579;
+}
+
+/* ── 攒下的东西 ── */
+.out {
+  padding: 30rpx 28rpx;
+  margin-bottom: 18rpx;
+  background: #fffdf8;
+  border: 1rpx solid #e8e2d8;
+  border-left: 3rpx solid #a8322a;
+  border-radius: 8rpx;
+}
+
+.row-hover {
+  background: #f7f2e8;
+}
+
+.out-q {
+  font-size: 21rpx;
+  letter-spacing: 2rpx;
+  color: #8d8579;
+}
+
+.out-t {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  line-height: 1.85;
+  color: #1c1a17;
+}
+
+.out-a {
+  margin-top: 14rpx;
+  font-size: 19rpx;
+  color: #b8b0a2;
+}
+
+/* ── 做完的事 ── */
+.group {
+  margin-bottom: 40rpx;
+}
+
+.g-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12rpx;
+}
+
+.g-k {
+  font-size: 22rpx;
+  letter-spacing: 2rpx;
+  color: #a8322a;
+}
+
+.g-n {
+  font-size: 20rpx;
+  color: #a8a093;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #ece6da;
+}
+
+.row-l {
+  flex: 1;
+}
+
+.row-q {
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: #1c1a17;
+}
+
+.row-a {
+  margin-top: 8rpx;
+  font-size: 19rpx;
+  color: #b8b0a2;
+}
+
+.row-x {
+  margin-left: 24rpx;
+  padding: 8rpx 4rpx;
+  font-size: 20rpx;
+  color: #a8a093;
+}
+
+/* ── 空状态 ── */
+.empty {
+  padding: 96rpx 0 40rpx;
+  text-align: center;
+}
+
+.empty-t {
+  font-size: 32rpx;
+  letter-spacing: 2rpx;
+  color: #1c1a17;
+}
+
+.empty-d {
+  margin-top: 20rpx;
+  font-size: 23rpx;
+  line-height: 1.9;
+  color: #8d8579;
+}
+
+.empty-b {
+  display: inline-block;
+  margin-top: 40rpx;
+  padding: 24rpx 56rpx;
+  font-size: 26rpx;
+  letter-spacing: 2rpx;
+  color: #1c1a17;
+  border: 1rpx solid #cfc7b8;
+  border-radius: 8rpx;
+}

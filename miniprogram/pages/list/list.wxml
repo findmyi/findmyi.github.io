@@ -1,0 +1,32 @@
+<view class="page">
+
+  <view class="head">
+    <view class="h1 serif">六十四卦</view>
+    <view class="sub">每卦六个位置。从下往上长，从上往下读。</view>
+  </view>
+
+  <view class="grid">
+    <view
+      class="cell"
+      wx:for="{{guas}}"
+      wx:key="g"
+      data-g="{{item.g}}"
+      bindtap="open"
+      hover-class="cell-hover"
+    >
+      <view class="hex">
+        <view
+          wx:for="{{item.lines}}"
+          wx:for-item="ln"
+          wx:for-index="j"
+          wx:key="i"
+          class="ln {{ln.yang ? 'yang' : 'yin'}}"
+        ></view>
+      </view>
+      <view class="gname serif">{{item.g}}</view>
+    </view>
+  </view>
+
+  <view class="tail">点任意一卦，看它六个位置上的处境</view>
+
+</view>

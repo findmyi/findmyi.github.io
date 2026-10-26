@@ -1,0 +1,131 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fbf8f1;
+}
+
+/* ── 顶部：返回 + 进度 ── */
+.bar {
+  display: flex;
+  align-items: center;
+  height: 104rpx;
+  padding: 0 36rpx 0 24rpx;
+  flex-shrink: 0;
+}
+
+.back {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 用纯 CSS 画一个细箭头，不依赖图标字体 */
+.chev {
+  width: 16rpx;
+  height: 16rpx;
+  border-left: 2rpx solid #6b645a;
+  border-bottom: 2rpx solid #6b645a;
+  transform: rotate(45deg);
+  margin-left: 6rpx;
+}
+
+.back-hover {
+  opacity: 0.5;
+}
+
+.track {
+  flex: 1;
+  height: 3rpx;
+  background: #e8e2d8;
+  margin: 0 20rpx 0 8rpx;
+  overflow: hidden;
+}
+
+.fill {
+  height: 3rpx;
+  background: #a8322a;
+  transition: width 0.3s ease;
+}
+
+.count {
+  font-size: 20rpx;
+  letter-spacing: 1rpx;
+  color: #9a9284;
+  min-width: 66rpx;
+  text-align: right;
+}
+
+.count.dim {
+  color: #c2baac;
+}
+
+/* ── 题目区 ── */
+.body {
+  flex: 1;
+  padding: 0 56rpx;
+}
+
+.q {
+  padding-top: 56rpx;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.q.hide {
+  opacity: 0;
+  transform: translateY(-12rpx);
+}
+
+.qtag {
+  font-size: 20rpx;
+  letter-spacing: 3rpx;
+  color: #a8a093;
+  margin-bottom: 26rpx;
+}
+
+.qtitle {
+  font-size: 36rpx;
+  line-height: 1.75;
+  letter-spacing: 1rpx;
+  color: #1c1a17;
+  font-weight: 500;
+}
+
+.qhint {
+  margin-top: 18rpx;
+  font-size: 22rpx;
+  line-height: 1.75;
+  color: #a8a093;
+}
+
+/* ── 选项 ── */
+.opts {
+  margin-top: 58rpx;
+  padding-bottom: 60rpx;
+}
+
+.opt {
+  padding: 30rpx 32rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid #e0d9cb;
+  border-radius: 8rpx;
+  background: #fffdf8;
+  font-size: 28rpx;
+  line-height: 1.62;
+  color: #2b2721;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.opt.on {
+  border-color: #a8322a;
+  background: #faf1ee;
+  color: #a8322a;
+}
+
+.opt-hover {
+  background: #f5f0e5;
+}
